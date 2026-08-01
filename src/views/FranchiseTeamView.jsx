@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
-import { Users, Plus, Edit3, Trash2, Shield, DollarSign, UserCog, UploadCloud, X, Eye, ShoppingBag } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, Shield, DollarSign, UserCog, UploadCloud, X, Eye, ShoppingBag, ShieldAlert } from 'lucide-react';
 
 const COLOR_SWATCHES = ['#00e699', '#ffb703', '#00d9ff', '#9d4edd', '#ff4d6d', '#ff85a1', '#70e000'];
 
@@ -18,6 +18,7 @@ export const FranchiseTeamView = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+  const [confirmDeleteTeam, setConfirmDeleteTeam] = useState(null);
 
   // Form State
   const [teamName, setTeamName] = useState('');
@@ -243,7 +244,7 @@ export const FranchiseTeamView = () => {
                   <Edit3 size={14} />
                 </button>
                 <button
-                  onClick={() => handleDeleteTeam(team.id)}
+                  onClick={() => setConfirmDeleteTeam(team)}
                   className="btn btn-danger"
                   style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                 >
@@ -472,6 +473,36 @@ export const FranchiseTeamView = () => {
               <button onClick={() => setSelectedTeamDetail(null)} className="btn btn-secondary">Close</button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteTeam && (
+        <div className="modal-overlay" onClick={() => setConfirmDeleteTeam(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert color="var(--accent-red)" /> Confirm Deletion
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Are you sure you want to permanently delete franchise <strong>{confirmDeleteTeam.name}</strong>? This action cannot be undone. The team record, roster, and manager assignments will be removed.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  handleDeleteTeam(confirmDeleteTeam.id);
+                  setConfirmDeleteTeam(null);
+                  setSelectedTeamDetail(null);
+                }}
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+              >
+                <Trash2 size={14} /> Yes, Delete Permanently
+              </button>
+              <button onClick={() => setConfirmDeleteTeam(null)} className="btn btn-secondary">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

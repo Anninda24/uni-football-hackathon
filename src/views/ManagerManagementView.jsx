@@ -39,6 +39,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
   const [editingManager, setEditingManager] = useState(initialEditManager);
   const [selectedManagerDetail, setSelectedManagerDetail] = useState(null);
   const [assigningTeamId, setAssigningTeamId] = useState(null);
+  const [confirmDeleteManager, setConfirmDeleteManager] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -282,7 +283,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                   <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem' }}><Eye size={14} /> Details</button>
                   <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '6px 8px', fontSize: '0.75rem' }} title="Reset Password"><Key size={14} color="var(--accent-gold)" /></button>
                   <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '6px 8px', fontSize: '0.75rem' }} title={isBanned ? 'Unban Manager' : 'Ban Manager'}><Ban size={14} /></button>
-                  <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                  <button onClick={() => setConfirmDeleteManager(mgr)} className="btn btn-danger" style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                 </div>
               </div>
             );
@@ -334,7 +335,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                         <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
                         <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Key size={14} color="var(--accent-gold)" /></button>
                         <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
-                        <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                        <button onClick={() => setConfirmDeleteManager(mgr)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -469,6 +470,36 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
               </button>
               <button onClick={() => toggleBanManager(selectedManagerDetail.id)} className="btn btn-danger">
                 <Ban size={14} /> {selectedManagerDetail.status === 'BANNED' ? 'Activate' : 'Deactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteManager && (
+        <div className="modal-overlay" onClick={() => setConfirmDeleteManager(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert color="var(--accent-red)" /> Confirm Deletion
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Are you sure you want to permanently delete manager <strong>{confirmDeleteManager.name}</strong>? This action cannot be undone. The manager account and associated team assignments will be removed.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  deleteManager(confirmDeleteManager.id);
+                  setConfirmDeleteManager(null);
+                  setSelectedManagerDetail(null);
+                }}
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+              >
+                <Trash2 size={14} /> Yes, Delete Permanently
+              </button>
+              <button onClick={() => setConfirmDeleteManager(null)} className="btn btn-secondary">
+                Cancel
               </button>
             </div>
           </div>

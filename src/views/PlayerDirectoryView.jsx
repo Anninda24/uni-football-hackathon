@@ -56,6 +56,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
   const [editingPlayer, setEditingPlayer] = useState(initialEditPlayer);
   const [selectedPlayerDetail, setSelectedPlayerDetail] = useState(null);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [confirmDeletePlayer, setConfirmDeletePlayer] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -396,7 +397,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                     <Eye size={14} /> Detail
                   </button>
                   <button
-                    onClick={() => deletePlayer(player.id)}
+                    onClick={() => setConfirmDeletePlayer(player)}
                     className="btn btn-danger"
                     style={{ padding: '6px 10px', fontSize: '0.75rem' }}
                     title="Delete Player"
@@ -466,7 +467,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
                         <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
-                        <button onClick={() => deletePlayer(player.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                        <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -706,8 +707,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
 
               <button
                 onClick={() => {
-                  deletePlayer(selectedPlayerDetail.id);
-                  setSelectedPlayerDetail(null);
+                  setConfirmDeletePlayer(selectedPlayerDetail);
                 }}
                 className="btn btn-danger"
               >
@@ -740,6 +740,36 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                 Import Sample Roster (4 Players)
               </button>
               <button onClick={() => setShowBulkImportModal(false)} className="btn btn-secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeletePlayer && (
+        <div className="modal-overlay" onClick={() => setConfirmDeletePlayer(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert color="var(--accent-red)" /> Confirm Deletion
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Are you sure you want to permanently delete <strong>{confirmDeletePlayer.name}</strong>? This action cannot be undone. The player record and associated Cloudinary asset will be wiped.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  deletePlayer(confirmDeletePlayer.id);
+                  setConfirmDeletePlayer(null);
+                  setSelectedPlayerDetail(null);
+                }}
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+              >
+                <Trash2 size={14} /> Yes, Delete Permanently
+              </button>
+              <button onClick={() => setConfirmDeletePlayer(null)} className="btn btn-secondary">
                 Cancel
               </button>
             </div>
