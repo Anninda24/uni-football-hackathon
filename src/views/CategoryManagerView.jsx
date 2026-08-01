@@ -87,10 +87,6 @@ export const CategoryManagerView = () => {
       addNotification('error', 'Locked Category', 'The Icon tier is a system default and cannot be deleted.');
       return;
     }
-    if (regularCats.length <= 1) {
-      addNotification('error', 'Cannot Delete', 'At least one regular Category / Tier must remain.');
-      return;
-    }
     const linkedCount = players.filter(p => p.categoryId === catId).length;
     if (linkedCount > 0) {
       addNotification('warning', 'Category In Use', `Warning: ${linkedCount} players currently assigned to this tier.`);
@@ -102,6 +98,7 @@ export const CategoryManagerView = () => {
     }));
     addNotification('info', 'Category Removed', 'Tier deleted successfully.');
   };
+
 
 
   return (

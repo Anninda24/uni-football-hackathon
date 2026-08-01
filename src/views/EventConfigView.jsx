@@ -55,8 +55,9 @@ export const EventConfigView = () => {
   };
 
   const handleRemoveCategory = (catId) => {
-    if (systemState.categories.length <= 1) {
-      addNotification('error', 'Cannot Delete', 'At least one category tier must be maintained.');
+    // Icon category is permanently locked — never allow deletion
+    if (catId === 'cat-icon') {
+      addNotification('error', 'Locked Category', 'The Icon tier is a system default and cannot be deleted.');
       return;
     }
     setSystemState(prev => ({
@@ -65,6 +66,7 @@ export const EventConfigView = () => {
     }));
     addNotification('info', 'Category Removed', 'Category tier deleted.');
   };
+
 
   const handleAddTeam = (e) => {
     e.preventDefault();
