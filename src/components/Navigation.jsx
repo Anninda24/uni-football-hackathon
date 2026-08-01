@@ -1,0 +1,279 @@
+import React from 'react';
+import { useSystem } from '../context/SystemContext';
+import { 
+  Trophy, 
+  Gavel, 
+  UserCheck, 
+  LayoutDashboard, 
+  Settings, 
+  Bomb, 
+  Users, 
+  Calendar, 
+  Award, 
+  Newspaper,
+  Shield,
+  SlidersHorizontal,
+  ChevronRight
+} from 'lucide-react';
+
+export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
+  const { systemState, changePhase, currentUser, setCurrentUser, teams } = useSystem();
+
+  const handleRoleChange = (role, teamId = null) => {
+    let name = 'Super Admin';
+    if (role === 'PODIUM_ADMIN') name = 'The Auctioneer (Podium Admin)';
+    if (role === 'TEAM_MANAGER') {
+      const t = teams.find(team => team.id === teamId) || teams[0];
+      name = `Manager: ${t.name}`;
+      teamId = t.id;
+    }
+    if (role === 'PLAYER') name = 'Julian Sterling (Player)';
+    if (role === 'SPECTATOR') name = 'Public Spectator';
+
+    setCurrentUser({
+      id: 'usr-' + role.toLowerCase(),
+      name,
+      email: role.toLowerCase() + '@football.com',
+      role,
+      teamId
+    });
+  };
+
+  const getPhaseBadgeColor = (phase) => {
+    switch (phase) {
+      case 'SETUP': return 'badge-purple';
+      case 'REGISTRATION': return 'badge-cyan';
+      case 'THE_AUCTION': return 'badge-gold';
+      case 'TOURNAMENT': return 'badge-green';
+      default: return 'badge-purple';
+    }
+  };
+
+  return (
+    <header className="glass-panel" style={{ borderRadius: '0 0 16px 16px', marginBottom: '24px', borderTop: 'none' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '14px 24px' }}>
+        
+        {/* Top Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+          
+          {/* Brand Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ 
+              width: '42px', 
+              height: '42px', 
+              borderRadius: '12px', 
+              background: 'linear-gradient(135deg, #00e699 0%, #00d9ff 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(0, 230, 153, 0.4)',
+              fontSize: '1.4rem'
+            }}>
+              ⚽
+            </div>
+            <div>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                UNI FOOTBALL <span className="gradient-text-green">FRANCHISE LEAGUE</span>
+              </h1>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Official League Platform</span> • <span>State Machine Architecture</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Center: System Phase Indicator & Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.3)', padding: '6px 14px', borderRadius: '30px', border: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>SYSTEM STATE:</span>
+            <span className={`badge ${getPhaseBadgeColor(systemState.currentPhase)}`} style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
+              {systemState.currentPhase === 'THE_AUCTION' && <span className="live-pulse" style={{ marginRight: '6px' }}></span>}
+              {systemState.currentPhase}
+            </span>
+
+            {/* Super Admin State Override Dropdown */}
+            {currentUser.role === 'SUPER_ADMIN' && (
+              <select
+                value={systemState.currentPhase}
+                onChange={(e) => changePhase(e.target.value)}
+                style={{
+                  background: 'var(--bg-input)',
+                  color: 'var(--accent-green)',
+                  border: '1px solid var(--accent-green-glow)',
+                  borderRadius: '16px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="SETUP" style={{ background: '#121826', color: '#f8fafc' }}>Phase 1: SETUP</option>
+                <option value="REGISTRATION" style={{ background: '#121826', color: '#f8fafc' }}>Phase 2: REGISTRATION</option>
+                <option value="THE_AUCTION" style={{ background: '#121826', color: '#f8fafc' }}>Phase 3: THE AUCTION</option>
+                <option value="TOURNAMENT" style={{ background: '#121826', color: '#f8fafc' }}>Phase 4: TOURNAMENT</option>
+              </select>
+            )}
+          </div>
+
+          {/* Right: Actor Switcher & Nuke Trigger */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-input)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <Shield size={16} color="var(--accent-cyan)" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACTOR SIMULATOR</span>
+                <select
+                  value={currentUser.role === 'TEAM_MANAGER' ? `TM-${currentUser.teamId}` : currentUser.role}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.startsWith('TM-')) {
+                      handleRoleChange('TEAM_MANAGER', val.replace('TM-', ''));
+                    } else {
+                      handleRoleChange(val);
+                    }
+                  }}
+                  style={{
+                    background: '#121826',
+                    border: '1px solid var(--accent-cyan)',
+                    borderRadius: '6px',
+                    color: 'var(--accent-cyan)',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="SUPER_ADMIN" style={{ background: '#121826', color: '#f8fafc' }}>👑 Super Admin</option>
+                  <option value="PODIUM_ADMIN" style={{ background: '#121826', color: '#f8fafc' }}>🎙️ Podium Admin (Auctioneer)</option>
+                  {teams.map(t => (
+                    <option key={t.id} value={`TM-${t.id}`} style={{ background: '#121826', color: '#f8fafc' }}>🛡️ Manager: {t.name}</option>
+                  ))}
+                  <option value="PLAYER" style={{ background: '#121826', color: '#f8fafc' }}>⚽ Player (Registration)</option>
+                  <option value="SPECTATOR" style={{ background: '#121826', color: '#f8fafc' }}>👁️ Spectator (Public)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Nuke Protocol Button (Super Admin) */}
+            {currentUser.role === 'SUPER_ADMIN' && (
+              <button 
+                onClick={() => setShowNukeModal(true)}
+                className="btn btn-danger"
+                style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+                title="Execute Nuke Protocols"
+              >
+                <Bomb size={16} /> RESET (NUKE)
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Navigation Tabs based on System State & Actor Role */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '12px', overflowX: 'auto' }}>
+          
+          {/* Landing / Main View Tab */}
+          <button
+            onClick={() => setActiveTab('LANDING')}
+            className={`btn ${activeTab === 'LANDING' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+          >
+            <LayoutDashboard size={16} /> 
+            {systemState.currentPhase === 'SETUP' && 'Landing & Rules'}
+            {systemState.currentPhase === 'REGISTRATION' && 'Player Registration Portal'}
+            {systemState.currentPhase === 'THE_AUCTION' && 'Live Auction Podium'}
+            {systemState.currentPhase === 'TOURNAMENT' && 'Tournament Hub'}
+          </button>
+
+          {/* Phase 1 & 2 Specific Tabs */}
+          {(systemState.currentPhase === 'SETUP' || systemState.currentPhase === 'REGISTRATION') && (
+            <>
+              <button
+                onClick={() => setActiveTab('REGISTER_PLAYER')}
+                className={`btn ${activeTab === 'REGISTER_PLAYER' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <UserCheck size={16} /> Player Portal
+              </button>
+              
+              {currentUser.role === 'SUPER_ADMIN' && (
+                <button
+                  onClick={() => setActiveTab('EVENT_CONFIG')}
+                  className={`btn ${activeTab === 'EVENT_CONFIG' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+                >
+                  <SlidersHorizontal size={16} /> Event Configuration
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Phase 3: Auction Specific Tabs */}
+          {systemState.currentPhase === 'THE_AUCTION' && (
+            <>
+              <button
+                onClick={() => setActiveTab('AUCTION_PODIUM')}
+                className={`btn ${activeTab === 'AUCTION_PODIUM' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Gavel size={16} /> Live Bidding Podium
+              </button>
+              
+              {currentUser.role === 'PODIUM_ADMIN' && (
+                <button
+                  onClick={() => setActiveTab('PODIUM_CONTROL')}
+                  className={`btn ${activeTab === 'PODIUM_CONTROL' ? 'btn-gold' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+                >
+                  <Settings size={16} /> Podium Admin Desk
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Phase 4: Tournament Specific Tabs */}
+          {systemState.currentPhase === 'TOURNAMENT' && (
+            <>
+              <button
+                onClick={() => setActiveTab('MATCHES')}
+                className={`btn ${activeTab === 'MATCHES' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Calendar size={16} /> Matches & Legged Fixtures
+              </button>
+              <button
+                onClick={() => setActiveTab('STANDINGS')}
+                className={`btn ${activeTab === 'STANDINGS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Trophy size={16} /> Points Table
+              </button>
+              <button
+                onClick={() => setActiveTab('STATS')}
+                className={`btn ${activeTab === 'STATS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Award size={16} /> Player Stats
+              </button>
+              <button
+                onClick={() => setActiveTab('NEWS')}
+                className={`btn ${activeTab === 'NEWS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Newspaper size={16} /> League News
+              </button>
+            </>
+          )}
+
+          {/* Common Rosters / Teams View Tab */}
+          <button
+            onClick={() => setActiveTab('TEAMS')}
+            className={`btn ${activeTab === 'TEAMS' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+          >
+            <Users size={16} /> Franchises & Rosters
+          </button>
+
+        </nav>
+
+      </div>
+    </header>
+  );
+};
