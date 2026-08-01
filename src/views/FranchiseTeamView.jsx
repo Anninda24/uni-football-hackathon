@@ -24,6 +24,8 @@ export const FranchiseTeamView = () => {
   const [teamLogo, setTeamLogo] = useState('⚡');
   const [managerId, setManagerId] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#00e699');
+  const [captainId, setCaptainId] = useState('');
+  const [viceCaptainId, setViceCaptainId] = useState('');
 
   const handleOpenAdd = () => {
     setEditingTeam(null);
@@ -31,6 +33,8 @@ export const FranchiseTeamView = () => {
     setTeamLogo('⚡');
     setManagerId('');
     setPrimaryColor('#00e699');
+    setCaptainId('');
+    setViceCaptainId('');
     setShowFormModal(true);
   };
 
@@ -40,6 +44,8 @@ export const FranchiseTeamView = () => {
     setTeamLogo(team.logo || '⚡');
     setManagerId(team.managerId || '');
     setPrimaryColor(team.primaryColor || '#00e699');
+    setCaptainId(team.captainId || '');
+    setViceCaptainId(team.viceCaptainId || '');
     setShowFormModal(true);
   };
 
@@ -58,10 +64,12 @@ export const FranchiseTeamView = () => {
       setTeams(prev => prev.map(t => t.id === editingTeam.id ? {
         ...t,
         name: teamName,
-        logo: teamLogo,
+        logo: teamLogo || '',
         managerId: managerId || null,
         managerName: mgrName,
-        primaryColor
+        primaryColor,
+        captainId: captainId || null,
+        viceCaptainId: viceCaptainId || null
       } : t));
 
       // Link manager to team
@@ -76,14 +84,16 @@ export const FranchiseTeamView = () => {
       const newTeam = {
         id: newTeamId,
         name: teamName,
-        logo: teamLogo,
+        logo: teamLogo || '',
         managerId: managerId || null,
         managerName: mgrName,
         primaryColor,
         budget: systemState.totalBudget,
         spent: 0,
         roster: [],
-        purchaseHistory: []
+        purchaseHistory: [],
+        captainId: captainId || null,
+        viceCaptainId: viceCaptainId || null
       };
 
       setTeams(prev => [...prev, newTeam]);
@@ -145,24 +155,56 @@ export const FranchiseTeamView = () => {
               <div>
                 {/* Header Logo & Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-                  <div style={{
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '16px',
-                    background: 'var(--bg-input)',
-                    border: `2px solid ${team.primaryColor || 'var(--accent-green)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.8rem'
-                  }}>
-                    {team.logo || '⚽'}
-                  </div>
+                  {team.logo ? (
+                    <div style={{
+                      width: '54px',
+                      height: '54px',
+                      borderRadius: '16px',
+                      background: 'var(--bg-input)',
+                      border: `2px solid ${team.primaryColor || 'var(--accent-green)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.8rem'
+                    }}>
+                      {team.logo}
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: '54px',
+                      height: '54px',
+                      borderRadius: '16px',
+                      background: 'var(--bg-input)',
+                      border: `2px dashed ${team.primaryColor || 'var(--border-color)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-dim)',
+                      fontWeight: 700
+                    }}>
+                      NO LOGO
+                    </div>
+                  )}
                   <div>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>{team.name}</h3>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Manager: <strong style={{ color: 'var(--accent-cyan)' }}>{team.managerName}</strong>
                     </div>
+                    {(team.captainId || team.viceCaptainId) && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {team.captainId && (
+                          <span style={{ color: 'var(--accent-gold)' }}>
+                            C: {players.find(p => p.id === team.captainId)?.name || 'TBD'}
+                          </span>
+                        )}
+                        {team.viceCaptainId && (
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            VC: {players.find(p => p.id === team.viceCaptainId)?.name || 'TBD'}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -240,14 +282,22 @@ export const FranchiseTeamView = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">Team Logo Emoji / Icon</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    style={{ textAlign: 'center', fontSize: '1.3rem', width: '60px' }}
-                    value={teamLogo}
-                    onChange={(e) => setTeamLogo(e.target.value)}
-                  />
+                  <label className="form-label">Team Logo Emoji / Icon (Optional)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ textAlign: 'center', fontSize: '1.3rem', width: '60px' }}
+                      value={teamLogo}
+                      onChange={(e) => setTeamLogo(e.target.value)}
+                      placeholder="⚽"
+                    />
+                    {teamLogo && (
+                      <button type="button" onClick={() => setTeamLogo('')} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                        <X size={12} /> Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="form-group">
@@ -262,6 +312,35 @@ export const FranchiseTeamView = () => {
                       <option key={m.id} value={m.id}>
                         {m.name} ({m.email})
                       </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Team Captain</label>
+                  <select
+                    className="form-control"
+                    value={captainId}
+                    onChange={(e) => setCaptainId(e.target.value)}
+                  >
+                    <option value="">-- Not Assigned --</option>
+                    {players.filter(p => editingTeam ? editingTeam.roster.includes(p.id) || p.soldToTeamId === editingTeam.id : true).map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Vice Captain</label>
+                  <select
+                    className="form-control"
+                    value={viceCaptainId}
+                    onChange={(e) => setViceCaptainId(e.target.value)}
+                  >
+                    <option value="">-- Not Assigned --</option>
+                    {players.filter(p => editingTeam ? editingTeam.roster.includes(p.id) || p.soldToTeamId === editingTeam.id : true).map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
                     ))}
                   </select>
                 </div>
@@ -322,10 +401,24 @@ export const FranchiseTeamView = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '2rem' }}>{selectedTeamDetail.logo}</span>
+                <span style={{ fontSize: '2rem' }}>{selectedTeamDetail.logo || '⚽'}</span>
                 <div>
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>{selectedTeamDetail.name}</h3>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Manager: {selectedTeamDetail.managerName}</div>
+                  {(selectedTeamDetail.captainId || selectedTeamDetail.viceCaptainId) && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                      {selectedTeamDetail.captainId && (
+                        <span style={{ color: 'var(--accent-gold)' }}>
+                          Captain: {players.find(p => p.id === selectedTeamDetail.captainId)?.name || 'TBD'}
+                        </span>
+                      )}
+                      {selectedTeamDetail.viceCaptainId && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          Vice Captain: {players.find(p => p.id === selectedTeamDetail.viceCaptainId)?.name || 'TBD'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <button onClick={() => setSelectedTeamDetail(null)} className="btn btn-secondary" style={{ padding: '4px 8px' }}><X size={16} /></button>

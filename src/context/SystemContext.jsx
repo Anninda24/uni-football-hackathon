@@ -42,10 +42,10 @@ const INITIAL_MANAGERS = [
 
 // Initial Franchises / Teams
 const INITIAL_TEAMS = [
-  { id: 'team-1', name: 'Thunderbolts FC', managerId: 'mgr-1', managerName: 'Alex Mercer', logo: '⚡', primaryColor: '#00e699', budget: 100000, spent: 0, roster: [], purchaseHistory: [] },
-  { id: 'team-2', name: 'Vanguard Lions', managerId: 'mgr-2', managerName: 'Sarah Jenkins', logo: '🦁', primaryColor: '#ffb703', budget: 100000, spent: 0, roster: [], purchaseHistory: [] },
-  { id: 'team-3', name: 'Apex Predators', managerId: 'mgr-3', managerName: 'Marcus Vance', logo: '🦈', primaryColor: '#00d9ff', budget: 100000, spent: 0, roster: [], purchaseHistory: [] },
-  { id: 'team-4', name: 'Titan Knights', managerId: 'mgr-4', managerName: 'Elena Rostova', logo: '🛡️', primaryColor: '#9d4edd', budget: 100000, spent: 0, roster: [], purchaseHistory: [] }
+  { id: 'team-1', name: 'Thunderbolts FC', managerId: 'mgr-1', managerName: 'Alex Mercer', logo: '⚡', primaryColor: '#00e699', budget: 100000, spent: 0, roster: [], purchaseHistory: [], captainId: null, viceCaptainId: null },
+  { id: 'team-2', name: 'Vanguard Lions', managerId: 'mgr-2', managerName: 'Sarah Jenkins', logo: '🦁', primaryColor: '#ffb703', budget: 100000, spent: 0, roster: [], purchaseHistory: [], captainId: null, viceCaptainId: null },
+  { id: 'team-3', name: 'Apex Predators', managerId: 'mgr-3', managerName: 'Marcus Vance', logo: '🦈', primaryColor: '#00d9ff', budget: 100000, spent: 0, roster: [], purchaseHistory: [], captainId: null, viceCaptainId: null },
+  { id: 'team-4', name: 'Titan Knights', managerId: 'mgr-4', managerName: 'Elena Rostova', logo: '🛡️', primaryColor: '#9d4edd', budget: 100000, spent: 0, roster: [], purchaseHistory: [], captainId: null, viceCaptainId: null }
 ];
 
 // Sample Initial Registered Players

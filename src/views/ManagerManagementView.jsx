@@ -38,6 +38,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
   const [showModal, setShowModal] = useState(Boolean(initialEditManager));
   const [editingManager, setEditingManager] = useState(initialEditManager);
   const [selectedManagerDetail, setSelectedManagerDetail] = useState(null);
+  const [assigningTeamId, setAssigningTeamId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -122,6 +123,16 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     }
 
     setShowModal(false);
+  };
+
+  const handleAssignTeam = (mgrId, teamId) => {
+    updateManager(mgrId, { teamId: teamId || null });
+    if (teamId) {
+      const team = teams.find(t => t.id === teamId);
+      const mgr = managers.find(m => m.id === mgrId);
+      addNotification('success', 'Team Assigned', `${mgr?.name || 'Manager'} assigned to ${team?.name || 'team'}.`);
+    }
+    setAssigningTeamId(null);
   };
 
   // Search & Filter
@@ -252,7 +263,17 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
 
                   <div style={{ background: 'var(--bg-input)', padding: '10px', borderRadius: '10px', fontSize: '0.78rem', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div>Username: <strong style={{ color: 'var(--accent-cyan)' }}>{mgr.username}</strong></div>
-                    <div>Assigned Franchise: <strong style={{ color: teamObj ? 'var(--accent-green)' : 'var(--text-dim)' }}>{teamObj ? teamObj.name : 'Unassigned'}</strong></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Assigned Franchise:</span>
+                      <select
+                        value={mgr.teamId || ''}
+                        onChange={(e) => handleAssignTeam(mgr.id, e.target.value)}
+                        style={{ background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)', padding: '2px 6px', fontSize: '0.75rem', outline: 'none' }}
+                      >
+                        <option value="">Unassigned</option>
+                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
                     <div>Bidding Token Status: <span className={`badge ${isBanned ? 'badge-red' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>{isBanned ? 'LOCKED (BANNED)' : 'ACTIVE'}</span></div>
                   </div>
                 </div>
@@ -260,8 +281,8 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem' }}><Eye size={14} /> Details</button>
                   <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '6px 8px', fontSize: '0.75rem' }} title="Reset Password"><Key size={14} color="var(--accent-gold)" /></button>
-                  <button onClick={() => handleOpenEdit(mgr)} className="btn btn-secondary" style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Edit3 size={14} /></button>
                   <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-primary' : 'btn-danger'}`} style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                  <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                 </div>
               </div>
             );
@@ -295,8 +316,15 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{mgr.username}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: teamObj ? 'var(--accent-green)' : 'var(--text-dim)' }}>
-                      {teamObj ? teamObj.name : 'Unassigned'}
+                    <td style={{ padding: '12px 16px' }}>
+                      <select
+                        value={mgr.teamId || ''}
+                        onChange={(e) => handleAssignTeam(mgr.id, e.target.value)}
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: teamObj ? 'var(--accent-green)' : 'var(--text-dim)', padding: '4px 8px', fontSize: '0.8rem', outline: 'none' }}
+                      >
+                        <option value="">Unassigned</option>
+                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span className={`badge ${isBanned ? 'badge-red' : 'badge-green'}`}>{isBanned ? 'LOCKED' : 'ACTIVE'}</span>
@@ -305,7 +333,6 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
                         <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Key size={14} color="var(--accent-gold)" /></button>
-                        <button onClick={() => handleOpenEdit(mgr)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Edit3 size={14} /></button>
                         <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-primary' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
                         <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>

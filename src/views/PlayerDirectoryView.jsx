@@ -155,6 +155,15 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     setShowFormModal(false);
   };
 
+  const handleAssignCategory = (playerId, categoryId) => {
+    setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, categoryId } : p));
+    const cat = systemState.categories.find(c => c.id === categoryId);
+    const player = players.find(p => p.id === playerId);
+    if (cat && player) {
+      addNotification('success', 'Category Assigned', `${player.name} moved to ${cat.name}.`);
+    }
+  };
+
   // Bulk CSV Simulation
   const handleSimulateBulkImport = () => {
     const sampleBulk = [
@@ -358,11 +367,21 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--bg-input)', padding: '10px', borderRadius: '8px', marginBottom: '12px' }}>
                     <div>Student ID: <strong style={{ color: 'var(--text-main)' }}>{player.studentId}</strong></div>
                     <div>Session: <strong style={{ color: 'var(--text-main)' }}>{player.session}</strong></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
                       <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>PRI: {player.primaryPosition}</span>
                       {player.secondaryPositions?.map(sec => (
                         <span key={sec} className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>SEC: {sec}</span>
                       ))}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-dim)' }}>CATEGORY:</span>
+                      <select
+                        value={player.categoryId}
+                        onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                        style={{ background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '2px 6px', fontSize: '0.7rem', fontWeight: 700, outline: 'none' }}
+                      >
+                        {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -375,13 +394,6 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                     style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
                   >
                     <Eye size={14} /> Detail
-                  </button>
-                  <button
-                    onClick={() => handleOpenEdit(player)}
-                    className="btn btn-secondary"
-                    style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                  >
-                    <Edit3 size={14} />
                   </button>
                   <button
                     onClick={() => toggleBanPlayer(player.id)}
@@ -433,13 +445,18 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                         <span key={s} className="badge badge-cyan" style={{ fontSize: '0.65rem', marginRight: '2px' }}>{s}</span>
                       ))}
                     </td>
-                    <td style={{ padding: '12px 16px', fontWeight: 800, color: category ? category.color : 'var(--accent-green)' }}>
-                      {category ? category.name : 'Platinum'}
+                    <td style={{ padding: '12px 16px' }}>
+                      <select
+                        value={player.categoryId}
+                        onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }}
+                      >
+                        {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
-                        <button onClick={() => handleOpenEdit(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Edit3 size={14} /></button>
                         <button onClick={() => toggleBanPlayer(player.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
                         <button onClick={() => deletePlayer(player.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>
