@@ -7,7 +7,7 @@ const PALETTE_COLORS = [
 ];
 
 export const CategoryManagerView = () => {
-  const { systemState, setSystemState, players, addNotification } = useSystem();
+  const { systemState, setSystemState, players, teams, addNotification } = useSystem();
 
   const [showModal, setShowModal] = useState(false);
   const [editingCatId, setEditingCatId] = useState(null);
@@ -108,7 +108,12 @@ export const CategoryManagerView = () => {
       {/* Category Cards Display Format */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
         {systemState.categories.map(cat => {
-          const playerCount = players.filter(p => p.categoryId === cat.id).length;
+          const captainOrVCIds = new Set();
+          teams.forEach(t => {
+            if (t.captainId) captainOrVCIds.add(t.captainId);
+            if (t.viceCaptainId) captainOrVCIds.add(t.viceCaptainId);
+          });
+          const playerCount = players.filter(p => p.categoryId === cat.id && !captainOrVCIds.has(p.id)).length;
           return (
             <div
               key={cat.id}

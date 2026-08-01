@@ -103,7 +103,12 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
   const guardCheck = validateBudgetGuardrail(selectedTeamId, nextMinBid);
 
   // Unsold Approved Players Pool
-  const unsoldApprovedPlayers = players.filter(p => p.status === 'APPROVED');
+  const captainOrVCIds = new Set();
+  teams.forEach(t => {
+    if (t.captainId) captainOrVCIds.add(t.captainId);
+    if (t.viceCaptainId) captainOrVCIds.add(t.viceCaptainId);
+  });
+  const unsoldApprovedPlayers = players.filter(p => p.status === 'APPROVED' && !captainOrVCIds.has(p.id));
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
