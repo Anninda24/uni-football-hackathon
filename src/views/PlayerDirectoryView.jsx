@@ -40,7 +40,8 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     toggleBanPlayer,
     deletePlayer,
     bulkImportPlayers,
-    addNotification
+    addNotification,
+    teams
   } = useSystem();
 
   // Top Bar States
@@ -212,7 +213,8 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
   });
 
   const groupedPlayers = sortedPlayers.reduce((acc, player) => {
-    const key = player.categoryId || 'unallocated';
+    const isCaptainOrVC = teams.some(t => t.captainId === player.id || t.viceCaptainId === player.id);
+    const key = isCaptainOrVC ? 'cat-icon' : (player.categoryId || 'unallocated');
     if (!acc[key]) acc[key] = [];
     acc[key].push(player);
     return acc;
