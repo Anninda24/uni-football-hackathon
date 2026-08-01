@@ -15,6 +15,7 @@ const INITIAL_SYSTEM_STATE = {
   
   // Player Categories with Base Prices
   categories: [
+    { id: 'cat-icon', name: 'Icon', basePrice: 25000, color: '#ff4081' },
     { id: 'cat-plat', name: 'Platinum', basePrice: 15000, color: '#00d9ff' },
     { id: 'cat-gold', name: 'Gold', basePrice: 10000, color: '#ffb703' },
     { id: 'cat-silver', name: 'Silver', basePrice: 6000, color: '#c0c0c0' },

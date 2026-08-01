@@ -191,10 +191,11 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
   });
 
   const categoryOrder = {
-    'cat-bronze': 1,
-    'cat-silver': 2,
+    'cat-icon': 5,
+    'cat-plat': 4,
     'cat-gold': 3,
-    'cat-plat': 4
+    'cat-silver': 2,
+    'cat-bronze': 1
   };
 
   const sortedPlayers = [...filteredPlayers].sort((a, b) => {
@@ -217,7 +218,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     return acc;
   }, {});
 
-  const groupOrder = ['unallocated', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
+  const groupOrder = ['unallocated', 'cat-icon', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
