@@ -327,7 +327,7 @@ export const FranchiseTeamView = () => {
                     onChange={(e) => setCaptainId(e.target.value)}
                   >
                     <option value="">-- Not Assigned --</option>
-                    {players.filter(p => editingTeam ? editingTeam.roster.includes(p.id) || p.soldToTeamId === editingTeam.id : true).map(p => (
+                    {players.map(p => (
                       <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
                     ))}
                   </select>
@@ -340,7 +340,7 @@ export const FranchiseTeamView = () => {
                     onChange={(e) => setViceCaptainId(e.target.value)}
                   >
                     <option value="">-- Not Assigned --</option>
-                    {players.filter(p => editingTeam ? editingTeam.roster.includes(p.id) || p.soldToTeamId === editingTeam.id : true).map(p => (
+                    {players.map(p => (
                       <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
                     ))}
                   </select>
