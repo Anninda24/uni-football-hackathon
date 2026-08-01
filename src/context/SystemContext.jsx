@@ -819,7 +819,7 @@ export const SystemProvider = ({ children }) => {
     if (mgr) {
       setManagers(prev => prev.filter(m => m.id !== managerId));
       setTeams(prev => prev.map(t => t.managerId === managerId ? { ...t, managerId: null, managerName: 'Unassigned' } : t));
-      addNotification('info', 'Manager Removed', `Manager ${mgr.name} account deleted.`);
+      addNotification('danger', 'Manager Deleted', `Manager ${mgr.name} account has been permanently removed.`);
     }
   };
 
@@ -859,7 +859,7 @@ export const SystemProvider = ({ children }) => {
     if (player) {
       console.log('Cloud API Hook: Destroying asset:', player.cloudPublicId);
       setPlayers(prev => prev.filter(p => p.id !== playerId));
-      addNotification('info', 'Player Removed', `${player.name} record deleted & Cloudinary asset wiped.`);
+      addNotification('danger', 'Player Deleted', `${player.name} record has been permanently removed & Cloudinary asset wiped.`);
     }
   };
 

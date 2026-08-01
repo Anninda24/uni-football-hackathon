@@ -112,7 +112,7 @@ export const FranchiseTeamView = () => {
       setTeams(prev => prev.filter(t => t.id !== teamId));
       // Unlink manager
       setManagers(prev => prev.map(m => m.teamId === teamId ? { ...m, teamId: null } : m));
-      addNotification('info', 'Franchise Deleted', `Team '${team.name}' removed.`);
+      addNotification('danger', 'Franchise Deleted', `Team '${team.name}' has been permanently removed from the league.`);
     }
   };
 

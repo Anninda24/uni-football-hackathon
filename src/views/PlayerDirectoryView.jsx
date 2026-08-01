@@ -396,10 +396,18 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                     <Eye size={14} /> Detail
                   </button>
                   <button
-                    onClick={() => toggleBanPlayer(player.id)}
+                    onClick={() => deletePlayer(player.id)}
                     className="btn btn-danger"
                     style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                    title="Ban / Disqualify"
+                    title="Delete Player"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => toggleBanPlayer(player.id)}
+                    className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
+                    style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                    title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
                   >
                     <Ban size={14} />
                   </button>
@@ -457,7 +465,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
-                        <button onClick={() => toggleBanPlayer(player.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                        <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
                         <button onClick={() => deletePlayer(player.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>
                     </td>

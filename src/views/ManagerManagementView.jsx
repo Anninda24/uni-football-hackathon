@@ -281,7 +281,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem' }}><Eye size={14} /> Details</button>
                   <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '6px 8px', fontSize: '0.75rem' }} title="Reset Password"><Key size={14} color="var(--accent-gold)" /></button>
-                  <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-primary' : 'btn-danger'}`} style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                  <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '6px 8px', fontSize: '0.75rem' }} title={isBanned ? 'Unban Manager' : 'Ban Manager'}><Ban size={14} /></button>
                   <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '6px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -333,7 +333,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button onClick={() => setSelectedManagerDetail(mgr)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
                         <button onClick={() => resetManagerPassword(mgr.id)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Key size={14} color="var(--accent-gold)" /></button>
-                        <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-primary' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                        <button onClick={() => toggleBanManager(mgr.id)} className={`btn ${isBanned ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
                         <button onClick={() => deleteManager(mgr.id)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
                       </div>
                     </td>
