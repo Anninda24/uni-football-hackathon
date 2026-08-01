@@ -158,10 +158,12 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
 
   const handleAssignCategory = (playerId, categoryId) => {
     setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, categoryId } : p));
-    const cat = systemState.categories.find(c => c.id === categoryId);
+    const cat = categoryId ? systemState.categories.find(c => c.id === categoryId) : null;
     const player = players.find(p => p.id === playerId);
     if (cat && player) {
       addNotification('success', 'Category Assigned', `${player.name} moved to ${cat.name}.`);
+    } else if (player && !categoryId) {
+      addNotification('success', 'Category Unassigned', `${player.name} moved to Unallocated.`);
     }
   };
 
@@ -371,7 +373,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                         className="glass-panel"
                         style={{
                           padding: '18px',
-                          borderTop: `3px solid ${categoryColor}`,
+                          borderTop: `4px solid ${categoryColor}`,
                           border: '1px solid var(--border-color)',
                           display: 'flex',
                           flexDirection: 'column',
@@ -419,9 +421,19 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                           >
                             <Eye size={14} /> Detail
                           </button>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: categoryColor, padding: '4px 8px', background: 'var(--bg-input)', borderRadius: '6px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+                          <button
+                            onClick={() => {
+                              const catOrder = ['', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
+                              const currentIndex = catOrder.indexOf(player.categoryId || '');
+                              const nextIndex = (currentIndex + 1) % catOrder.length;
+                              const nextCatId = catOrder[nextIndex];
+                              handleAssignCategory(player.id, nextCatId);
+                            }}
+                            style={{ fontSize: '0.7rem', fontWeight: 700, color: categoryColor, padding: '4px 8px', background: 'var(--bg-input)', borderRadius: '6px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                            title="Click to change category"
+                          >
                             {category ? category.name : 'UNALLOCATED'}
-                          </span>
+                          </button>
                           <button
                             onClick={() => setConfirmDeletePlayer(player)}
                             className="btn btn-danger"
@@ -735,25 +747,6 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                 style={{ flex: 1 }}
               >
                 <Edit3 size={16} /> Edit Profile
-              </button>
-
-              <button
-                onClick={() => {
-                  toggleBanPlayer(selectedPlayerDetail.id);
-                  setSelectedPlayerDetail(prev => ({ ...prev, status: prev.status === 'BANNED' ? 'APPROVED' : 'BANNED' }));
-                }}
-                className="btn btn-danger"
-              >
-                <Ban size={16} /> Ban / Disqualify
-              </button>
-
-              <button
-                onClick={() => {
-                  setConfirmDeletePlayer(selectedPlayerDetail);
-                }}
-                className="btn btn-danger"
-              >
-                <Trash2 size={16} /> Delete & Wipe Cloud Asset
               </button>
             </div>
           </div>
