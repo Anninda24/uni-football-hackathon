@@ -210,7 +210,7 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
                       <img src={mgr.imageUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
                       <div>
                         <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{mgr.name}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{mgr.email} • Username: {mgr.username}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{mgr.email} • {mgr.mobile || 'No mobile'}</div>
                       </div>
                     </div>
                     <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>Edit Manager</span>

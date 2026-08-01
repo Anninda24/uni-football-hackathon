@@ -14,7 +14,6 @@ import { BiddingMathMatrixView } from './views/BiddingMathMatrixView';
 import { PlayerDirectoryView } from './views/PlayerDirectoryView';
 import { FranchiseTeamView } from './views/FranchiseTeamView';
 import { ManagerManagementView } from './views/ManagerManagementView';
-import { RolePermissionsView } from './views/RolePermissionsView';
 import { LiveOperationsView } from './views/LiveOperationsView';
 import { DangerZoneView } from './views/DangerZoneView';
 import { LiveAuctionView } from './views/LiveAuctionView';
@@ -51,8 +50,6 @@ export function App() {
         return <FranchiseTeamView />;
       case 'MANAGERS':
         return <ManagerManagementView initialEditManager={editManagerTarget} />;
-      case 'ROLES_PERMISSIONS':
-        return <RolePermissionsView />;
       case 'LIVE_OPERATIONS':
         return <LiveOperationsView onNavigateToTab={setActiveModule} />;
       case 'DANGER_ZONE':

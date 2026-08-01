@@ -44,7 +44,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    username: '',
+    mobile: '',
     password: '',
     teamId: '',
     imageUrl: ''
@@ -58,9 +58,8 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     setFormData({
       name: '',
       email: '',
-      username: '',
+      mobile: '',
       password: autoPass,
-      teamId: '',
       imageUrl: ''
     });
     setImagePreview('');
@@ -72,7 +71,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     setFormData({
       name: mgr.name,
       email: mgr.email,
-      username: mgr.username,
+      mobile: mgr.mobile || '',
       password: mgr.password || '********',
       teamId: mgr.teamId || '',
       imageUrl: mgr.imageUrl
@@ -102,8 +101,8 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.username) {
-      addNotification('error', 'Missing Data', 'Full Name, Email, and Username are required.');
+    if (!formData.name || !formData.email) {
+      addNotification('error', 'Missing Data', 'Full Name and Email are required.');
       return;
     }
 
@@ -139,7 +138,8 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
   const filteredManagers = managers.filter(m => 
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.username.toLowerCase().includes(searchQuery.toLowerCase())
+    (m.username && m.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (m.mobile && m.mobile.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const sortedManagers = [...filteredManagers].sort((a, b) => {
@@ -178,7 +178,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
             <Search size={16} color="var(--text-dim)" />
             <input
               type="text"
-              placeholder="Search by Manager Name, Email, or Username..."
+              placeholder="Search by Manager Name, Email, Mobile..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', outline: 'none', fontSize: '0.85rem', width: '100%' }}
@@ -262,7 +262,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                   </div>
 
                   <div style={{ background: 'var(--bg-input)', padding: '10px', borderRadius: '10px', fontSize: '0.78rem', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div>Username: <strong style={{ color: 'var(--accent-cyan)' }}>{mgr.username}</strong></div>
+                    <div>Mobile: <strong style={{ color: 'var(--accent-cyan)' }}>{mgr.mobile || 'N/A'}</strong></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>Assigned Franchise:</span>
                       <select
@@ -292,13 +292,13 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
         <div className="glass-panel" style={{ overflowX: 'auto', padding: '0' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '14px 16px' }}>MANAGER</th>
-                <th style={{ padding: '14px 16px' }}>USERNAME / CREDENTIALS</th>
-                <th style={{ padding: '14px 16px' }}>LINKED FRANCHISE</th>
-                <th style={{ padding: '14px 16px' }}>TOKEN STATUS</th>
-                <th style={{ padding: '14px 16px', textAlign: 'right' }}>ACTIONS</th>
-              </tr>
+                <tr style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '14px 16px' }}>MANAGER</th>
+                  <th style={{ padding: '14px 16px' }}>MOBILE / CONTACT</th>
+                  <th style={{ padding: '14px 16px' }}>LINKED FRANCHISE</th>
+                  <th style={{ padding: '14px 16px' }}>TOKEN STATUS</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'right' }}>ACTIONS</th>
+                </tr>
             </thead>
             <tbody>
               {sortedManagers.map(mgr => {
@@ -315,7 +315,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{mgr.username}</td>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{mgr.mobile || 'N/A'}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <select
                         value={mgr.teamId || ''}
@@ -356,100 +356,85 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
               <button onClick={() => setShowModal(false)} className="btn btn-secondary" style={{ padding: '4px 8px' }}><X size={16} /></button>
             </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Full Name *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Alex Mercer"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
+             <form onSubmit={handleSubmit}>
+               <div className="form-group">
+                 <label className="form-label">Full Name *</label>
+                 <input
+                   type="text"
+                   className="form-control"
+                   placeholder="e.g. Alex Mercer"
+                   value={formData.name}
+                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                   required
+                 />
+               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">Email Address *</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="e.g. alex@thunderbolts.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Username *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. alex_mercer"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                 <div className="form-group">
+                   <label className="form-label">Email Address *</label>
+                   <input
+                     type="email"
+                     className="form-control"
+                     placeholder="e.g. alex@thunderbolts.com"
+                     value={formData.email}
+                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                     required
+                   />
+                 </div>
+                 <div className="form-group">
+                   <label className="form-label">Mobile Number</label>
+                   <input
+                     type="tel"
+                     className="form-control"
+                     placeholder="e.g. +1-555-0101"
+                     value={formData.mobile}
+                     onChange={(e) => setFormData(prev => ({ ...prev, mobile: e.target.value }))}
+                   />
+                 </div>
+               </div>
 
-              {/* Login Credentials Auto-Generator */}
-              <div className="form-group">
-                <label className="form-label">Initial Password Credentials Generator</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}
-                  />
-                  <button type="button" onClick={handleGeneratePassword} className="btn btn-secondary" style={{ fontSize: '0.8rem' }}>
-                    <Key size={14} color="var(--accent-gold)" /> Generate
-                  </button>
-                </div>
-              </div>
+               {/* Login Credentials Auto-Generator */}
+               <div className="form-group">
+                 <label className="form-label">Initial Password Credentials Generator</label>
+                 <div style={{ display: 'flex', gap: '8px' }}>
+                   <input
+                     type="text"
+                     className="form-control"
+                     value={formData.password}
+                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                     style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}
+                   />
+                   <button type="button" onClick={handleGeneratePassword} className="btn btn-secondary" style={{ fontSize: '0.8rem' }}>
+                     <Key size={14} color="var(--accent-gold)" /> Generate
+                   </button>
+                 </div>
+               </div>
 
-              <div className="form-group">
-                <label className="form-label">Assigned Franchise Team</label>
-                <select
-                  className="form-control"
-                  value={formData.teamId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, teamId: e.target.value }))}
-                >
-                  <option value="">-- Leave Unassigned --</option>
-                  {teams.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
+               {/* Cloudinary Profile Photo Dropzone */}
+               <div className="form-group">
+                 <label className="form-label">Profile Image (Cloudinary Dropzone)</label>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                   <div style={{ width: '50px', height: '50px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     {imagePreview ? <img src={imagePreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UploadCloud size={20} color="var(--text-dim)" />}
+                   </div>
+                   <div style={{ flex: 1 }}>
+                     <label className="btn btn-secondary" style={{ width: '100%', fontSize: '0.8rem', cursor: 'pointer' }}>
+                       <UploadCloud size={14} /> {isUploading ? 'Uploading...' : 'Upload Image'}
+                       <input type="file" accept="image/*" onChange={handleImageFile} style={{ display: 'none' }} />
+                     </label>
+                   </div>
+                 </div>
+               </div>
 
-              {/* Cloudinary Profile Photo Dropzone */}
-              <div className="form-group">
-                <label className="form-label">Profile Image (Cloudinary Dropzone)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '50px', height: '50px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {imagePreview ? <img src={imagePreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UploadCloud size={20} color="var(--text-dim)" />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label className="btn btn-secondary" style={{ width: '100%', fontSize: '0.8rem', cursor: 'pointer' }}>
-                      <UploadCloud size={14} /> {isUploading ? 'Uploading...' : 'Upload Image'}
-                      <input type="file" accept="image/*" onChange={handleImageFile} style={{ display: 'none' }} />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {editingManager ? 'Save Changes' : 'Create Manager Account'}
-                </button>
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-              </div>
-            </form>
+               <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
+                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                   {editingManager ? 'Save Changes' : 'Create Manager Account'}
+                 </button>
+                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
+                   Cancel
+                 </button>
+               </div>
+             </form>
           </div>
         </div>
       )}
@@ -463,14 +448,14 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
               <button onClick={() => setSelectedManagerDetail(null)} className="btn btn-secondary" style={{ padding: '4px 8px' }}><X size={16} /></button>
             </div>
 
-            <div style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
-              <img src={selectedManagerDetail.imageUrl} alt="" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', border: '2px solid var(--border-color)' }} />
-              <div>
-                <h4 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{selectedManagerDetail.name}</h4>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedManagerDetail.email}</div>
-                <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>Username: <strong>{selectedManagerDetail.username}</strong></div>
-              </div>
-            </div>
+             <div style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
+               <img src={selectedManagerDetail.imageUrl} alt="" style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', border: '2px solid var(--border-color)' }} />
+               <div>
+                 <h4 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{selectedManagerDetail.name}</h4>
+                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{selectedManagerDetail.email}</div>
+                 <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>Mobile: <strong>{selectedManagerDetail.mobile || 'N/A'}</strong></div>
+               </div>
+             </div>
 
             <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div>Assigned Team: <span className="badge badge-green">{teams.find(t => t.id === selectedManagerDetail.teamId)?.name || 'Unassigned'}</span></div>

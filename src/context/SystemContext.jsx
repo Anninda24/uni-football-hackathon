@@ -34,10 +34,10 @@ const INITIAL_SYSTEM_STATE = {
 
 // Initial Franchise Managers
 const INITIAL_MANAGERS = [
-  { id: 'mgr-1', name: 'Alex Mercer', email: 'alex@thunderbolts.com', username: 'alex_mercer', password: 'pass_thunder_2026', imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_1', teamId: 'team-1', status: 'ACTIVE', createdAt: '2026-07-25' },
-  { id: 'mgr-2', name: 'Sarah Jenkins', email: 'sarah@vanguard.com', username: 'sarah_j', password: 'pass_vanguard_2026', imageUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_2', teamId: 'team-2', status: 'ACTIVE', createdAt: '2026-07-26' },
-  { id: 'mgr-3', name: 'Marcus Vance', email: 'marcus@apex.com', username: 'marcus_v', password: 'pass_apex_2026', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_3', teamId: 'team-3', status: 'ACTIVE', createdAt: '2026-07-27' },
-  { id: 'mgr-4', name: 'Elena Rostova', email: 'elena@titans.com', username: 'elena_r', password: 'pass_titans_2026', imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_4', teamId: 'team-4', status: 'ACTIVE', createdAt: '2026-07-28' }
+  { id: 'mgr-1', name: 'Alex Mercer', email: 'alex@thunderbolts.com', mobile: '+1-555-0101', password: 'pass_thunder_2026', imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_1', teamId: 'team-1', status: 'ACTIVE', createdAt: '2026-07-25' },
+  { id: 'mgr-2', name: 'Sarah Jenkins', email: 'sarah@vanguard.com', mobile: '+1-555-0102', password: 'pass_vanguard_2026', imageUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_2', teamId: 'team-2', status: 'ACTIVE', createdAt: '2026-07-26' },
+  { id: 'mgr-3', name: 'Marcus Vance', email: 'marcus@apex.com', mobile: '+1-555-0103', password: 'pass_apex_2026', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_3', teamId: 'team-3', status: 'ACTIVE', createdAt: '2026-07-27' },
+  { id: 'mgr-4', name: 'Elena Rostova', email: 'elena@titans.com', mobile: '+1-555-0104', password: 'pass_titans_2026', imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80', cloudPublicId: 'cld_mgr_4', teamId: 'team-4', status: 'ACTIVE', createdAt: '2026-07-28' }
 ];
 
 // Initial Franchises / Teams

@@ -3,7 +3,6 @@ import { useSystem } from '../context/SystemContext';
 import { 
   Sliders, 
   Activity, 
-  Shield, 
   Percent, 
   Users, 
   UserCheck, 
@@ -367,29 +366,6 @@ export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, 
               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <UserCog size={16} color={activeModule === 'MANAGERS' ? 'var(--accent-green)' : 'var(--text-muted)'} />
                 Manager Management
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveModule('ROLES_PERMISSIONS')}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                borderRadius: '10px',
-                background: activeModule === 'ROLES_PERMISSIONS' ? 'rgba(157, 78, 221, 0.15)' : 'transparent',
-                color: activeModule === 'ROLES_PERMISSIONS' ? '#c77dff' : 'var(--text-main)',
-                border: activeModule === 'ROLES_PERMISSIONS' ? '1px solid rgba(157, 78, 221, 0.3)' : '1px solid transparent',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem'
-              }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Shield size={16} color={activeModule === 'ROLES_PERMISSIONS' ? '#c77dff' : 'var(--text-muted)'} />
-                Role & Admin Permissions
               </span>
             </button>
           </div>
