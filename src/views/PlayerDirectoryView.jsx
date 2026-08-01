@@ -417,23 +417,19 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                           <button
                             onClick={() => setSelectedPlayerDetail(player)}
                             className="btn btn-secondary"
-                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
+                            style={{ padding: '6px 8px', fontSize: '0.75rem' }}
+                            title="Detail"
                           >
-                            <Eye size={14} /> Detail
+                            <Eye size={14} />
                           </button>
-                          <button
-                            onClick={() => {
-                              const catOrder = ['', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
-                              const currentIndex = catOrder.indexOf(player.categoryId || '');
-                              const nextIndex = (currentIndex + 1) % catOrder.length;
-                              const nextCatId = catOrder[nextIndex];
-                              handleAssignCategory(player.id, nextCatId);
-                            }}
-                            style={{ fontSize: '0.7rem', fontWeight: 700, color: categoryColor, padding: '4px 8px', background: 'var(--bg-input)', borderRadius: '6px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                            title="Click to change category"
+                          <select
+                            value={player.categoryId || ''}
+                            onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: categoryColor, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
                           >
-                            {category ? category.name : 'UNALLOCATED'}
-                          </button>
+                            <option value="">Unallocated</option>
+                            {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
                           <button
                             onClick={() => setConfirmDeletePlayer(player)}
                             className="btn btn-danger"
@@ -511,8 +507,15 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                               <span key={s} className="badge badge-cyan" style={{ fontSize: '0.65rem', marginRight: '2px' }}>{s}</span>
                             ))}
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: 800, color: category ? category.color : 'var(--accent-green)' }}>
-                            {category ? category.name : 'UNALLOCATED'}
+                          <td style={{ padding: '12px 16px' }}>
+                            <select
+                              value={player.categoryId || ''}
+                              onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }}
+                            >
+                              <option value="">Unallocated</option>
+                              {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
