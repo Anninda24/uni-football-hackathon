@@ -15,7 +15,7 @@ const INITIAL_SYSTEM_STATE = {
   
   // Player Categories with Base Prices
   categories: [
-    { id: 'cat-icon', name: 'Icon', basePrice: 0, color: '#ff4081' },
+    { id: 'cat-icon', name: 'Icon', basePrice: 0, color: '#ef4444' },
     { id: 'cat-plat', name: 'Platinum', basePrice: 15000, color: '#00d9ff' },
     { id: 'cat-gold', name: 'Gold', basePrice: 10000, color: '#ffb703' },
     { id: 'cat-silver', name: 'Silver', basePrice: 6000, color: '#c0c0c0' },
@@ -275,7 +275,28 @@ export const SystemProvider = ({ children }) => {
   // Global System Configuration & State Machine
   const [systemState, setSystemState] = useState(() => {
     const saved = localStorage.getItem('ff_system_state');
-    return saved ? JSON.parse(saved) : INITIAL_SYSTEM_STATE;
+    if (!saved) return INITIAL_SYSTEM_STATE;
+
+    const parsed = JSON.parse(saved);
+
+    // --- MIGRATION: Ensure 'cat-icon' always exists as the first category
+    // with basePrice=0 and red color scheme, regardless of old localStorage state ---
+    const ICON_CAT_DEFAULTS = { id: 'cat-icon', name: 'Icon', basePrice: 0, color: '#ef4444' };
+    let cats = parsed.categories || [];
+    const iconIdx = cats.findIndex(c => c.id === 'cat-icon');
+    if (iconIdx === -1) {
+      // Not present at all — inject it at position 0
+      cats = [ICON_CAT_DEFAULTS, ...cats];
+    } else {
+      // Present but may have stale color or non-zero basePrice — enforce defaults
+      const existing = cats[iconIdx];
+      cats = [
+        { ...existing, basePrice: 0, color: '#ef4444' },
+        ...cats.filter((_, i) => i !== iconIdx)
+      ];
+    }
+
+    return { ...parsed, categories: cats };
   });
 
   // Current Active User / Role

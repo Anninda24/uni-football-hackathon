@@ -1,20 +1,32 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
-import { Layers, Plus, Trash2, Edit3, Shield, Palette, X } from 'lucide-react';
+import { Layers, Plus, Trash2, Edit3, Lock, Star, X } from 'lucide-react';
+
+// The Icon category is a permanently locked system default
+const ICON_CAT_FALLBACK = { id: 'cat-icon', name: 'Icon', basePrice: 0, color: '#ef4444' };
+
 
 const PALETTE_COLORS = [
   '#00d9ff', '#ffb703', '#c0c0c0', '#cd7f32', '#00e699', '#ff4d6d', '#9d4edd', '#ff85a1', '#70e000'
 ];
+
 
 export const CategoryManagerView = () => {
   const { systemState, setSystemState, players, teams, addNotification } = useSystem();
 
   const [showModal, setShowModal] = useState(false);
   const [editingCatId, setEditingCatId] = useState(null);
+
   
   const [catName, setCatName] = useState('');
   const [catPrice, setCatPrice] = useState('');
   const [catColor, setCatColor] = useState('#00d9ff');
+
+  // Always resolve the Icon category — use locked fallback if not in state
+  const iconCat = systemState.categories.find(c => c.id === 'cat-icon') || ICON_CAT_FALLBACK;
+  const iconPlayers = players.filter(p => p.categoryId === 'cat-icon');
+  const regularCats = systemState.categories.filter(c => c.id !== 'cat-icon');
+
 
   const handleOpenAdd = () => {
     setEditingCatId(null);
@@ -70,8 +82,13 @@ export const CategoryManagerView = () => {
   };
 
   const handleDelete = (catId) => {
-    if (systemState.categories.length <= 1) {
-      addNotification('error', 'Cannot Delete', 'At least one Category / Tier must remain.');
+    // Icon category is permanently locked — never allow deletion
+    if (catId === 'cat-icon') {
+      addNotification('error', 'Locked Category', 'The Icon tier is a system default and cannot be deleted.');
+      return;
+    }
+    if (regularCats.length <= 1) {
+      addNotification('error', 'Cannot Delete', 'At least one regular Category / Tier must remain.');
       return;
     }
     const linkedCount = players.filter(p => p.categoryId === catId).length;
@@ -86,6 +103,7 @@ export const CategoryManagerView = () => {
     addNotification('info', 'Category Removed', 'Tier deleted successfully.');
   };
 
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
@@ -93,10 +111,11 @@ export const CategoryManagerView = () => {
       <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Layers color="var(--accent-cyan)" /> Tier & Category Manager (/admin/categories)
+            <Layers color="var(--accent-cyan)" /> Tier &amp; Category Manager (/admin/categories)
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '4px' }}>
             Define player tier classifications (Platinum, Gold, Silver, Icon), opening base prices, and badge accent color swatches.
+            The <strong style={{ color: '#ef4444' }}>Icon</strong> tier is a system default — always first, no base price, locked.
           </p>
         </div>
 
@@ -105,58 +124,84 @@ export const CategoryManagerView = () => {
         </button>
       </div>
 
-      {/* Category Cards Display Format */}
+      {/* Category Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-        {/* Icon Card - Special Captain/VC Card */}
-        {(() => {
-          const iconCat = systemState.categories.find(c => c.id === 'cat-icon');
-          if (!iconCat) return null;
-          const iconPlayers = players.filter(p => p.categoryId === 'cat-icon');
-          return (
-            <div
-              key="cat-icon"
-              className="glass-panel"
-              style={{
-                padding: '24px',
-                borderTop: `4px solid ${iconCat.color}`,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                background: 'linear-gradient(135deg, rgba(255,64,129,0.08) 0%, rgba(255,183,3,0.05) 100%)'
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: iconCat.color }}>
-                    {iconCat.name}
-                  </span>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    background: iconCat.color,
-                    boxShadow: `0 0 10px ${iconCat.color}`
-                  }}></div>
-                </div>
 
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-mono)', marginBottom: '8px' }}>
-                  Pre-assigned
-                </div>
-
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Captain / Vice-Captain: <strong style={{ color: 'var(--text-main)' }}>{iconPlayers.length} Players</strong>
-                </div>
+        {/* ─── ICON CARD — Always First, Always Red, Always Locked ─── */}
+        <div
+          className="glass-panel"
+          style={{
+            padding: '24px',
+            borderTop: '4px solid #ef4444',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(220,38,38,0.05) 100%)',
+            boxShadow: '0 0 24px rgba(239,68,68,0.12)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <div>
+            {/* Header Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Star size={16} color="#ef4444" fill="#ef4444" />
+                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>
+                  {iconCat.name}
+                </span>
               </div>
-
-              <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(255,64,129,0.1)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                ⭐ Auto-assigned to teams • No base price • Not in auction pool
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {/* Locked badge */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  background: 'rgba(239,68,68,0.15)',
+                  border: '1px solid rgba(239,68,68,0.35)',
+                  borderRadius: '20px', padding: '2px 8px', fontSize: '0.68rem',
+                  color: '#ef4444', fontWeight: 700, letterSpacing: '0.04em'
+                }}>
+                  <Lock size={10} /> LOCKED
+                </div>
+                {/* Color dot */}
+                <div style={{
+                  width: '18px', height: '18px', borderRadius: '50%',
+                  background: '#ef4444', boxShadow: '0 0 10px rgba(239,68,68,0.7)'
+                }} />
               </div>
             </div>
-          );
-        })()}
 
-        {/* Regular Category Cards */}
-        {systemState.categories.filter(c => c.id !== 'cat-icon').map(cat => {
+            {/* "No Base Price" badge */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.30)',
+              borderRadius: '8px', padding: '6px 14px',
+              marginBottom: '10px'
+            }}>
+              <span style={{ fontSize: '1rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#ef4444' }}>
+                No Base Price
+              </span>
+            </div>
+
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Captain / Vice-Captain: <strong style={{ color: 'var(--text-main)' }}>{iconPlayers.length} Players</strong>
+            </div>
+          </div>
+
+          {/* Info Footer */}
+          <div style={{
+            marginTop: '20px', padding: '10px 14px',
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.20)',
+            borderRadius: '8px', fontSize: '0.74rem',
+            color: '#f87171', textAlign: 'center', lineHeight: 1.5
+          }}>
+            ⭐ Auto-assigned to teams &nbsp;•&nbsp; Not in auction pool &nbsp;•&nbsp; Cannot be edited or deleted
+          </div>
+        </div>
+
+        {/* ─── REGULAR CATEGORY CARDS ─── */}
+        {regularCats.map(cat => {
           const captainOrVCIds = new Set();
           teams.forEach(t => {
             if (t.captainId) captainOrVCIds.add(t.captainId);
@@ -186,7 +231,7 @@ export const CategoryManagerView = () => {
                     borderRadius: '50%',
                     background: cat.color,
                     boxShadow: `0 0 10px ${cat.color}`
-                  }}></div>
+                  }} />
                 </div>
 
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-mono)', marginBottom: '8px' }}>
