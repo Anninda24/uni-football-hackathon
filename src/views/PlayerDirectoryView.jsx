@@ -188,14 +188,34 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     return matchSearch && matchPos && matchCat && matchSess;
   });
 
+  const categoryOrder = {
+    'cat-bronze': 1,
+    'cat-silver': 2,
+    'cat-gold': 3,
+    'cat-plat': 4
+  };
+
   const sortedPlayers = [...filteredPlayers].sort((a, b) => {
     if (sortBy === 'NAME_ASC') return a.name.localeCompare(b.name);
     if (sortBy === 'NAME_DESC') return b.name.localeCompare(a.name);
     if (sortBy === 'JERSEY') return Number(a.jerseyNumber || 0) - Number(b.jerseyNumber || 0);
     if (sortBy === 'SESSION') return a.session.localeCompare(b.session);
-    if (sortBy === 'CATEGORY') return a.categoryId.localeCompare(b.categoryId);
+    if (sortBy === 'CATEGORY') {
+      const aOrder = a.categoryId ? (categoryOrder[a.categoryId] || 0) : -1;
+      const bOrder = b.categoryId ? (categoryOrder[b.categoryId] || 0) : -1;
+      return aOrder - bOrder || a.name.localeCompare(b.name);
+    }
     return 0;
   });
+
+  const groupedPlayers = sortedPlayers.reduce((acc, player) => {
+    const key = player.categoryId || 'unallocated';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(player);
+    return acc;
+  }, {});
+
+  const groupOrder = ['unallocated', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -326,94 +346,104 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
       {/* Main Content Area: Card Grid or Data Table */}
       {viewMode === 'CARD' ? (
         /* Large Icon View / Card Grid */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
-          {sortedPlayers.map(player => {
-            const category = systemState.categories.find(c => c.id === player.categoryId);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {groupOrder.map(groupKey => {
+            const groupPlayers = groupedPlayers[groupKey];
+            if (!groupPlayers || groupPlayers.length === 0) return null;
+            const groupLabel = groupKey === 'unallocated' ? 'Unallocated' : systemState.categories.find(c => c.id === groupKey)?.name || groupKey;
+            const groupColor = groupKey === 'unallocated' ? 'var(--text-muted)' : systemState.categories.find(c => c.id === groupKey)?.color || 'var(--text-muted)';
+            const groupBasePrice = groupKey === 'unallocated' ? null : systemState.categories.find(c => c.id === groupKey)?.basePrice;
             return (
-              <div
-                key={player.id}
-                className="glass-panel"
-                style={{
-                  padding: '18px',
-                  position: 'relative',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between'
-                }}
-              >
-
-                <div>
-                  {/* Player Avatar & Badges Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
-                    <img
-                      src={player.imageUrl}
-                      alt={player.name}
-                      style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', border: '2px solid var(--border-color)' }}
-                    />
-                    <div>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{player.name}</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                          #{player.jerseyNumber || '10'} {player.jerseyName}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: category ? category.color : 'var(--accent-green)' }}>
-                          {category ? category.name : 'Platinum'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metadata */}
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--bg-input)', padding: '10px', borderRadius: '8px', marginBottom: '12px' }}>
-                    <div>Student ID: <strong style={{ color: 'var(--text-main)' }}>{player.studentId}</strong></div>
-                    <div>Session: <strong style={{ color: 'var(--text-main)' }}>{player.session}</strong></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                      <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>PRI: {player.primaryPosition}</span>
-                      {player.secondaryPositions?.map(sec => (
-                        <span key={sec} className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>SEC: {sec}</span>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-dim)' }}>CATEGORY:</span>
-                      <select
-                        value={player.categoryId}
-                        onChange={(e) => handleAssignCategory(player.id, e.target.value)}
-                        style={{ background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '2px 6px', fontSize: '0.7rem', fontWeight: 700, outline: 'none' }}
+              <div key={groupKey}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '0 4px' }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', background: groupColor }}></div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: groupColor }}>{groupLabel}</h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>({groupPlayers.length})</span>
+                  {groupBasePrice && <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>Base: ${groupBasePrice.toLocaleString()}</span>}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '18px' }}>
+                  {groupPlayers.map(player => {
+                    const category = systemState.categories.find(c => c.id === player.categoryId);
+                    const categoryColor = category ? category.color : 'var(--accent-green)';
+                    return (
+                      <div
+                        key={player.id}
+                        className="glass-panel"
+                        style={{
+                          padding: '18px',
+                          borderTop: `3px solid ${categoryColor}`,
+                          border: '1px solid var(--border-color)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between'
+                        }}
                       >
-                        {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Actions Bar */}
-                <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-                  <button
-                    onClick={() => setSelectedPlayerDetail(player)}
-                    className="btn btn-secondary"
-                    style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
-                  >
-                    <Eye size={14} /> Detail
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeletePlayer(player)}
-                    className="btn btn-danger"
-                    style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                    title="Delete Player"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                  <button
-                    onClick={() => toggleBanPlayer(player.id)}
-                    className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
-                    style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                    title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
-                  >
-                    <Ban size={14} />
-                  </button>
-                </div>
+                        <div>
+                          {/* Player Avatar & Badges Header */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                            <img
+                              src={player.imageUrl}
+                              alt={player.name}
+                              style={{ width: '64px', height: '64px', borderRadius: '14px', objectFit: 'cover', border: '2px solid var(--border-color)' }}
+                            />
+                            <div>
+                              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, lineHeight: 1.2 }}>{player.name}</h3>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                  #{player.jerseyNumber || '10'} {player.jerseyName}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
 
+                          {/* Metadata */}
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--bg-input)', padding: '10px', borderRadius: '8px', marginBottom: '12px' }}>
+                            <div>Student ID: <strong style={{ color: 'var(--text-main)' }}>{player.studentId}</strong></div>
+                            <div>Session: <strong style={{ color: 'var(--text-main)' }}>{player.session}</strong></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                              <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>PRI: {player.primaryPosition}</span>
+                              {player.secondaryPositions?.map(sec => (
+                                <span key={sec} className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>SEC: {sec}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions Bar */}
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '10px', alignItems: 'center' }}>
+                          <button
+                            onClick={() => setSelectedPlayerDetail(player)}
+                            className="btn btn-secondary"
+                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
+                          >
+                            <Eye size={14} /> Detail
+                          </button>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: categoryColor, padding: '4px 8px', background: 'var(--bg-input)', borderRadius: '6px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
+                            {category ? category.name : 'UNALLOCATED'}
+                          </span>
+                          <button
+                            onClick={() => setConfirmDeletePlayer(player)}
+                            className="btn btn-danger"
+                            style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                            title="Delete Player"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => toggleBanPlayer(player.id)}
+                            className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
+                            style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                            title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
+                          >
+                            <Ban size={14} />
+                          </button>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
@@ -433,44 +463,56 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
               </tr>
             </thead>
             <tbody>
-              {sortedPlayers.map(player => {
-                 const category = systemState.categories.find(c => c.id === player.categoryId);
-                 return (
-                   <tr key={player.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img src={player.imageUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{player.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>#{player.jerseyNumber || '10'} {player.jerseyName}</div>
+              {groupOrder.map(groupKey => {
+                const groupPlayers = groupedPlayers[groupKey];
+                if (!groupPlayers || groupPlayers.length === 0) return null;
+                const groupLabel = groupKey === 'unallocated' ? 'Unallocated' : systemState.categories.find(c => c.id === groupKey)?.name || groupKey;
+                const groupColor = groupKey === 'unallocated' ? 'var(--text-muted)' : systemState.categories.find(c => c.id === groupKey)?.color || 'var(--text-muted)';
+                return (
+                  <React.Fragment key={groupKey}>
+                    <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
+                      <td colSpan="6" style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 800, color: groupColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: groupColor }}></div>
+                          {groupLabel} ({groupPlayers.length})
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{player.studentId}</td>
-                    <td style={{ padding: '12px 16px' }}>{player.session}</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <span className="badge badge-green" style={{ fontSize: '0.7rem', marginRight: '4px' }}>{player.primaryPosition}</span>
-                      {player.secondaryPositions?.map(s => (
-                        <span key={s} className="badge badge-cyan" style={{ fontSize: '0.65rem', marginRight: '2px' }}>{s}</span>
-                      ))}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <select
-                        value={player.categoryId}
-                        onChange={(e) => handleAssignCategory(player.id, e.target.value)}
-                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }}
-                      >
-                        {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
-                        <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
-                        <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {groupPlayers.map(player => {
+                      const category = systemState.categories.find(c => c.id === player.categoryId);
+                      return (
+                        <tr key={player.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img src={player.imageUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+                              <div>
+                                <div style={{ fontWeight: 700 }}>{player.name}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>#{player.jerseyNumber || '10'} {player.jerseyName}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{player.studentId}</td>
+                          <td style={{ padding: '12px 16px' }}>{player.session}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span className="badge badge-green" style={{ fontSize: '0.7rem', marginRight: '4px' }}>{player.primaryPosition}</span>
+                            {player.secondaryPositions?.map(s => (
+                              <span key={s} className="badge badge-cyan" style={{ fontSize: '0.65rem', marginRight: '2px' }}>{s}</span>
+                            ))}
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 800, color: category ? category.color : 'var(--accent-green)' }}>
+                            {category ? category.name : 'UNALLOCATED'}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
+                              <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                              <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 );
               })}
             </tbody>
