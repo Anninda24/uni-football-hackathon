@@ -357,7 +357,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
             if (!groupPlayers || groupPlayers.length === 0) return null;
             const groupLabel = groupKey === 'unallocated' ? 'Unallocated' : systemState.categories.find(c => c.id === groupKey)?.name || groupKey;
             const groupColor = groupKey === 'unallocated' ? 'var(--text-muted)' : systemState.categories.find(c => c.id === groupKey)?.color || 'var(--text-muted)';
-            const groupBasePrice = groupKey === 'unallocated' ? null : systemState.categories.find(c => c.id === groupKey)?.basePrice;
+            const groupBasePrice = groupKey === 'unallocated' ? null : (groupKey === 'cat-icon' ? null : systemState.categories.find(c => c.id === groupKey)?.basePrice);
             return (
               <div key={groupKey}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '0 4px' }}>

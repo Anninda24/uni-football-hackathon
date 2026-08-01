@@ -107,7 +107,56 @@ export const CategoryManagerView = () => {
 
       {/* Category Cards Display Format */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-        {systemState.categories.map(cat => {
+        {/* Icon Card - Special Captain/VC Card */}
+        {(() => {
+          const iconCat = systemState.categories.find(c => c.id === 'cat-icon');
+          if (!iconCat) return null;
+          const iconPlayers = players.filter(p => p.categoryId === 'cat-icon');
+          return (
+            <div
+              key="cat-icon"
+              className="glass-panel"
+              style={{
+                padding: '24px',
+                borderTop: `4px solid ${iconCat.color}`,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                background: 'linear-gradient(135deg, rgba(255,64,129,0.08) 0%, rgba(255,183,3,0.05) 100%)'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: iconCat.color }}>
+                    {iconCat.name}
+                  </span>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: iconCat.color,
+                    boxShadow: `0 0 10px ${iconCat.color}`
+                  }}></div>
+                </div>
+
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, fontFamily: 'var(--font-mono)', marginBottom: '8px' }}>
+                  Pre-assigned
+                </div>
+
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Captain / Vice-Captain: <strong style={{ color: 'var(--text-main)' }}>{iconPlayers.length} Players</strong>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(255,64,129,0.1)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                ⭐ Auto-assigned to teams • No base price • Not in auction pool
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Regular Category Cards */}
+        {systemState.categories.filter(c => c.id !== 'cat-icon').map(cat => {
           const captainOrVCIds = new Set();
           teams.forEach(t => {
             if (t.captainId) captainOrVCIds.add(t.captainId);

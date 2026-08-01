@@ -108,7 +108,7 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
     if (t.captainId) captainOrVCIds.add(t.captainId);
     if (t.viceCaptainId) captainOrVCIds.add(t.viceCaptainId);
   });
-  const unsoldApprovedPlayers = players.filter(p => p.status === 'APPROVED' && !captainOrVCIds.has(p.id));
+  const unsoldApprovedPlayers = players.filter(p => p.status === 'APPROVED' && !captainOrVCIds.has(p.id) && p.categoryId !== 'cat-icon');
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>

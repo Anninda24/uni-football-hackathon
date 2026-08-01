@@ -11,6 +11,7 @@ export const FranchiseTeamView = () => {
     managers, 
     setManagers, 
     players, 
+    setPlayers,
     systemState, 
     addNotification 
   } = useSystem();
@@ -61,7 +62,13 @@ export const FranchiseTeamView = () => {
     const mgrName = assignedMgr ? assignedMgr.name : 'Unassigned';
 
     if (editingTeam) {
-      // Update
+      // Determine icon players: current captain/VC and newly assigned
+      const prevCaptainId = editingTeam.captainId;
+      const prevVCId = editingTeam.viceCaptainId;
+      const newCaptainId = captainId || null;
+      const newVCId = viceCaptainId || null;
+
+      // Update team
       setTeams(prev => prev.map(t => t.id === editingTeam.id ? {
         ...t,
         name: teamName,
@@ -69,9 +76,39 @@ export const FranchiseTeamView = () => {
         managerId: managerId || null,
         managerName: mgrName,
         primaryColor,
-        captainId: captainId || null,
-        viceCaptainId: viceCaptainId || null
+        captainId: newCaptainId,
+        viceCaptainId: newVCId,
+        roster: [...new Set([...(t.roster || []), ...(newCaptainId ? [newCaptainId] : []), ...(newVCId ? [newVCId] : [])])]
       } : t));
+
+      // Update players to/from icon category
+      setPlayers(prev => prev.map(p => {
+        const wasCaptain = p.id === prevCaptainId;
+        const wasVC = p.id === prevVCId;
+        const isCaptain = p.id === newCaptainId;
+        const isVC = p.id === newVCId;
+        const wasIcon = wasCaptain || wasVC;
+        const isIcon = isCaptain || isVC;
+
+        if (isIcon && !wasIcon) {
+          // Assign as icon player
+          return {
+            ...p,
+            categoryId: 'cat-icon',
+            soldToTeamId: editingTeam.id,
+            previousCategoryId: p.categoryId
+          };
+        } else if (!isIcon && wasIcon) {
+          // Remove icon status - restore previous category or unassign
+          return {
+            ...p,
+            categoryId: p.previousCategoryId || 'unallocated',
+            soldToTeamId: null,
+            previousCategoryId: undefined
+          };
+        }
+        return p;
+      }));
 
       // Link manager to team
       if (managerId) {
@@ -98,6 +135,27 @@ export const FranchiseTeamView = () => {
       };
 
       setTeams(prev => [...prev, newTeam]);
+
+      // Set captain and VC players to icon category and add to roster
+      const newRoster = [...(captainId ? [captainId] : []), ...(viceCaptainId ? [viceCaptainId] : [])];
+      if (newRoster.length > 0) {
+        setPlayers(prev => prev.map(p => {
+          const isCaptain = p.id === captainId;
+          const isVC = p.id === viceCaptainId;
+          if (isCaptain || isVC) {
+            return {
+              ...p,
+              categoryId: 'cat-icon',
+              soldToTeamId: newTeamId,
+              previousCategoryId: p.categoryId
+            };
+          }
+          return p;
+        }));
+        // Update team roster with captain/VC
+        setTeams(prev => prev.map(t => t.id === newTeamId ? { ...t, roster: newRoster } : t));
+      }
+
       if (managerId) {
         setManagers(prev => prev.map(m => m.id === managerId ? { ...m, teamId: newTeamId } : m));
       }
