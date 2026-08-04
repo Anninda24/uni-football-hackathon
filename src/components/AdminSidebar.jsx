@@ -2,6 +2,7 @@ import React from 'react';
 import { useSystem } from '../context/SystemContext';
 import { 
   Sliders, 
+  SlidersHorizontal,
   Activity, 
   Percent, 
   Users, 
@@ -18,29 +19,25 @@ import {
   Gavel, 
   ExternalLink,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Crown,
+  Calendar,
+  TrendingUp,
+  Newspaper,
+  LayoutDashboard,
+  Clock
 } from 'lucide-react';
 
 export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, onOpenCommandPalette }) => {
   const { systemState, changePhase, currentUser, setCurrentUser, teams } = useSystem();
 
-  const handleRoleChange = (role, teamId = null) => {
-    let name = 'Super Admin';
-    if (role === 'PODIUM_ADMIN') name = 'The Auctioneer (Podium Admin)';
-    if (role === 'TEAM_MANAGER') {
-      const t = teams.find(team => team.id === teamId) || teams[0];
-      name = `Manager: ${t.name}`;
-      teamId = t?.id || null;
-    }
-    if (role === 'PLAYER') name = 'Julian Sterling (Player)';
-    if (role === 'SPECTATOR') name = 'Public Spectator';
-
+  const handleRoleChange = (role) => {
     setCurrentUser({
-      id: 'usr-' + role.toLowerCase(),
-      name,
-      email: role.toLowerCase() + '@football.com',
+      id: role === 'ICON_PLAYER' ? 'usr-icon-player' : role === 'SPECTATOR' ? 'usr-spectator' : 'usr-super-admin',
+      name: role === 'ICON_PLAYER' ? 'Icon Player' : role === 'SPECTATOR' ? 'Spectator (Before Auction)' : 'Super Admin',
+      email: role === 'ICON_PLAYER' ? 'icon@football.com' : role === 'SPECTATOR' ? 'spectator@football.com' : 'admin@football.com',
       role,
-      teamId
+      teamId: null
     });
   };
 
@@ -122,15 +119,8 @@ export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, 
         <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.04em' }}>ACTOR ROLE:</label>
           <select
-            value={currentUser.role === 'TEAM_MANAGER' ? `TM-${currentUser.teamId}` : currentUser.role}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val.startsWith('TM-')) {
-                handleRoleChange('TEAM_MANAGER', val.replace('TM-', ''));
-              } else {
-                handleRoleChange(val);
-              }
-            }}
+            value={currentUser.role}
+            onChange={(e) => handleRoleChange(e.target.value)}
             style={{
               background: 'var(--bg-input)',
               border: '1px solid var(--accent-cyan)',
@@ -145,11 +135,8 @@ export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, 
             }}
           >
             <option value="SUPER_ADMIN">👑 Super Admin</option>
-            <option value="PODIUM_ADMIN">🎙️ Podium Admin (Auctioneer)</option>
-            {teams.map(t => (
-              <option key={t.id} value={`TM-${t.id}`}>🛡️ Manager: {t.name}</option>
-            ))}
-            <option value="SPECTATOR">👁️ Spectator View</option>
+            <option value="ICON_PLAYER">⭐ Icon Player</option>
+            <option value="SPECTATOR">👁️ Spectator (Before Auction)</option>
           </select>
         </div>
 
@@ -171,8 +158,11 @@ export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, 
       {/* Structured Sidebar Navigation Links */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-        {/* Section A: System Core */}
-        <div>
+        {/* Super Admin Sidebar Sections */}
+        {currentUser.role === 'SUPER_ADMIN' && (
+          <>
+            {/* Section A: System Core */}
+            <div>
           <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 6px 8px' }}>
             SECTION A: SYSTEM CORE
           </div>
@@ -436,6 +426,42 @@ export const AdminSidebar = ({ activeModule, setActiveModule, setShowNukeModal, 
             </button>
           </div>
         </div>
+          </>
+        )}
+
+        {/* Icon Player Sidebar Section */}
+        {currentUser.role === 'ICON_PLAYER' && (
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 6px 8px' }}>
+              CAPTAIN HUB
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button onClick={() => setActiveModule('CAPTAIN_DASHBOARD')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'CAPTAIN_DASHBOARD' ? 'rgba(255, 183, 3, 0.15)' : 'transparent', color: activeModule === 'CAPTAIN_DASHBOARD' ? 'var(--accent-gold)' : 'var(--text-main)', border: activeModule === 'CAPTAIN_DASHBOARD' ? '1px solid rgba(255, 183, 3, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Crown size={16} color={activeModule === 'CAPTAIN_DASHBOARD' ? 'var(--accent-gold)' : 'var(--text-muted)'} /> Captain Dashboard</button>
+              <button onClick={() => setActiveModule('MY_TEAM')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'MY_TEAM' ? 'rgba(255, 183, 3, 0.15)' : 'transparent', color: activeModule === 'MY_TEAM' ? 'var(--accent-gold)' : 'var(--text-main)', border: activeModule === 'MY_TEAM' ? '1px solid rgba(255, 183, 3, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Users size={16} color={activeModule === 'MY_TEAM' ? 'var(--accent-gold)' : 'var(--text-muted)'} /> My Team Info</button>
+              <button onClick={() => setActiveModule('MATCH_CENTER')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'MATCH_CENTER' ? 'rgba(255, 183, 3, 0.15)' : 'transparent', color: activeModule === 'MATCH_CENTER' ? 'var(--accent-gold)' : 'var(--text-main)', border: activeModule === 'MATCH_CENTER' ? '1px solid rgba(255, 183, 3, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Calendar size={16} color={activeModule === 'MATCH_CENTER' ? 'var(--accent-gold)' : 'var(--text-muted)'} /> Match Center</button>
+              <button onClick={() => setActiveModule('TEAM_PERFORMANCE')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'TEAM_PERFORMANCE' ? 'rgba(255, 183, 3, 0.15)' : 'transparent', color: activeModule === 'TEAM_PERFORMANCE' ? 'var(--accent-gold)' : 'var(--text-main)', border: activeModule === 'TEAM_PERFORMANCE' ? '1px solid rgba(255, 183, 3, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><TrendingUp size={16} color={activeModule === 'TEAM_PERFORMANCE' ? 'var(--accent-gold)' : 'var(--text-muted)'} /> Team Performance Stats</button>
+              <button onClick={() => setActiveModule('CAPTAIN_ANNOUNCEMENTS')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'CAPTAIN_ANNOUNCEMENTS' ? 'rgba(255, 183, 3, 0.15)' : 'transparent', color: activeModule === 'CAPTAIN_ANNOUNCEMENTS' ? 'var(--accent-gold)' : 'var(--text-main)', border: activeModule === 'CAPTAIN_ANNOUNCEMENTS' ? '1px solid rgba(255, 183, 3, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Newspaper size={16} color={activeModule === 'CAPTAIN_ANNOUNCEMENTS' ? 'var(--accent-gold)' : 'var(--text-muted)'} /> Captain Announcements</button>
+            </div>
+          </div>
+        )}
+
+        {/* Spectator Before Auction Sidebar Section */}
+        {currentUser.role === 'SPECTATOR' && (
+          <div>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px 6px 8px' }}>
+              SPECTATOR HUB
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button onClick={() => setActiveModule('HOME_PAGE')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'HOME_PAGE' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'HOME_PAGE' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'HOME_PAGE' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><LayoutDashboard size={16} color={activeModule === 'HOME_PAGE' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Home Page</button>
+              <button onClick={() => setActiveModule('REGISTERED_PLAYERS')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'REGISTERED_PLAYERS' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'REGISTERED_PLAYERS' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'REGISTERED_PLAYERS' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><UserCheck size={16} color={activeModule === 'REGISTERED_PLAYERS' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Registered Players List</button>
+              <button onClick={() => setActiveModule('TEAM_ANNOUNCEMENTS')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'TEAM_ANNOUNCEMENTS' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'TEAM_ANNOUNCEMENTS' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'TEAM_ANNOUNCEMENTS' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Newspaper size={16} color={activeModule === 'TEAM_ANNOUNCEMENTS' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Team Announcements</button>
+              <button onClick={() => setActiveModule('RULES_CATEGORIES')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'RULES_CATEGORIES' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'RULES_CATEGORIES' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'RULES_CATEGORIES' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><SlidersHorizontal size={16} color={activeModule === 'RULES_CATEGORIES' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Rules & Categories Overview</button>
+              <button onClick={() => setActiveModule('AUCTION_SCHEDULE')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'AUCTION_SCHEDULE' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'AUCTION_SCHEDULE' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'AUCTION_SCHEDULE' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Calendar size={16} color={activeModule === 'AUCTION_SCHEDULE' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Auction Schedule</button>
+              <button onClick={() => setActiveModule('NEWS_UPDATES')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'NEWS_UPDATES' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'NEWS_UPDATES' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'NEWS_UPDATES' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Newspaper size={16} color={activeModule === 'NEWS_UPDATES' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> News and Updates</button>
+              <button onClick={() => setActiveModule('COUNTDOWN_TIMER')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '10px', background: activeModule === 'COUNTDOWN_TIMER' ? 'rgba(0, 217, 255, 0.15)' : 'transparent', color: activeModule === 'COUNTDOWN_TIMER' ? 'var(--accent-cyan)' : 'var(--text-main)', border: activeModule === 'COUNTDOWN_TIMER' ? '1px solid rgba(0, 217, 255, 0.3)' : '1px solid transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}><Clock size={16} color={activeModule === 'COUNTDOWN_TIMER' ? 'var(--accent-cyan)' : 'var(--text-muted)'} /> Countdown Timer</button>
+            </div>
+          </div>
+        )}
 
       </div>
 

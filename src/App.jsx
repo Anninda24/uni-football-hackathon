@@ -18,6 +18,18 @@ import { LiveOperationsView } from './views/LiveOperationsView';
 import { DangerZoneView } from './views/DangerZoneView';
 import { LiveAuctionView } from './views/LiveAuctionView';
 import { TournamentView } from './views/TournamentView';
+import { CaptainDashboardView } from './views/CaptainDashboardView';
+import { MyTeamInfoView } from './views/MyTeamInfoView';
+import { MatchCenterView } from './views/MatchCenterView';
+import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
+import { CaptainAnnouncementsView } from './views/CaptainAnnouncementsView';
+import { HomePageView } from './views/HomePageView';
+import { RegisteredPlayersListView } from './views/RegisteredPlayersListView';
+import { TeamAnnouncementsView } from './views/TeamAnnouncementsView';
+import { RulesCategoriesOverviewView } from './views/RulesCategoriesOverviewView';
+import { AuctionScheduleView } from './views/AuctionScheduleView';
+import { NewsUpdatesView } from './views/NewsUpdatesView';
+import { CountdownTimerView } from './views/CountdownTimerView';
 
 export function App() {
   const { systemState, currentUser } = useSystem();
@@ -56,6 +68,30 @@ export function App() {
         return <DangerZoneView onOpenNukeModal={() => setShowNukeModal(true)} />;
       case 'TOURNAMENT':
         return <TournamentView defaultTab="MATCHES" />;
+      case 'CAPTAIN_DASHBOARD':
+        return <CaptainDashboardView />;
+      case 'MY_TEAM':
+        return <MyTeamInfoView />;
+      case 'MATCH_CENTER':
+        return <MatchCenterView />;
+      case 'TEAM_PERFORMANCE':
+        return <TeamPerformanceStatsView />;
+      case 'CAPTAIN_ANNOUNCEMENTS':
+        return <CaptainAnnouncementsView />;
+      case 'HOME_PAGE':
+        return <HomePageView />;
+      case 'REGISTERED_PLAYERS':
+        return <RegisteredPlayersListView />;
+      case 'TEAM_ANNOUNCEMENTS':
+        return <TeamAnnouncementsView />;
+      case 'RULES_CATEGORIES':
+        return <RulesCategoriesOverviewView />;
+      case 'AUCTION_SCHEDULE':
+        return <AuctionScheduleView />;
+      case 'NEWS_UPDATES':
+        return <NewsUpdatesView />;
+      case 'COUNTDOWN_TIMER':
+        return <CountdownTimerView />;
       default:
         return <MissionControlView />;
     }

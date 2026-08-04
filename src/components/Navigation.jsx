@@ -13,29 +13,24 @@ import {
   Newspaper,
   Shield,
   SlidersHorizontal,
-  ChevronRight
+  ChevronRight,
+  Star,
+  Target,
+  TrendingUp,
+  Crown,
+  Clock
 } from 'lucide-react';
 
 export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
   const { systemState, changePhase, currentUser, setCurrentUser, teams } = useSystem();
 
-  const handleRoleChange = (role, teamId = null) => {
-    let name = 'Super Admin';
-    if (role === 'PODIUM_ADMIN') name = 'The Auctioneer (Podium Admin)';
-    if (role === 'TEAM_MANAGER') {
-      const t = teams.find(team => team.id === teamId) || teams[0];
-      name = `Manager: ${t.name}`;
-      teamId = t.id;
-    }
-    if (role === 'PLAYER') name = 'Julian Sterling (Player)';
-    if (role === 'SPECTATOR') name = 'Public Spectator';
-
+  const handleRoleChange = (role) => {
     setCurrentUser({
-      id: 'usr-' + role.toLowerCase(),
-      name,
-      email: role.toLowerCase() + '@football.com',
+      id: role === 'ICON_PLAYER' ? 'usr-icon-player' : role === 'SPECTATOR' ? 'usr-spectator' : 'usr-super-admin',
+      name: role === 'ICON_PLAYER' ? 'Icon Player' : role === 'SPECTATOR' ? 'Spectator (Before Auction)' : 'Super Admin',
+      email: role === 'ICON_PLAYER' ? 'icon@football.com' : role === 'SPECTATOR' ? 'spectator@football.com' : 'admin@football.com',
       role,
-      teamId
+      teamId: null
     });
   };
 
@@ -120,15 +115,8 @@ export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACTOR SIMULATOR</span>
                 <select
-                  value={currentUser.role === 'TEAM_MANAGER' ? `TM-${currentUser.teamId}` : currentUser.role}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.startsWith('TM-')) {
-                      handleRoleChange('TEAM_MANAGER', val.replace('TM-', ''));
-                    } else {
-                      handleRoleChange(val);
-                    }
-                  }}
+                  value={currentUser.role}
+                  onChange={(e) => handleRoleChange(e.target.value)}
                   style={{
                     background: '#121826',
                     border: '1px solid var(--accent-cyan)',
@@ -142,12 +130,8 @@ export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
                   }}
                 >
                   <option value="SUPER_ADMIN" style={{ background: '#121826', color: '#f8fafc' }}>👑 Super Admin</option>
-                  <option value="PODIUM_ADMIN" style={{ background: '#121826', color: '#f8fafc' }}>🎙️ Podium Admin (Auctioneer)</option>
-                  {teams.map(t => (
-                    <option key={t.id} value={`TM-${t.id}`} style={{ background: '#121826', color: '#f8fafc' }}>🛡️ Manager: {t.name}</option>
-                  ))}
-                  <option value="PLAYER" style={{ background: '#121826', color: '#f8fafc' }}>⚽ Player (Registration)</option>
-                  <option value="SPECTATOR" style={{ background: '#121826', color: '#f8fafc' }}>👁️ Spectator (Public)</option>
+                  <option value="ICON_PLAYER" style={{ background: '#121826', color: '#f8fafc' }}>⭐ Icon Player</option>
+                  <option value="SPECTATOR" style={{ background: '#121826', color: '#f8fafc' }}>👁️ Spectator (Before Auction)</option>
                 </select>
               </div>
             </div>
@@ -270,6 +254,102 @@ export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
           >
             <Users size={16} /> Franchises & Rosters
           </button>
+
+          {/* Icon Player Role Tabs */}
+          {currentUser.role === 'ICON_PLAYER' && (
+            <>
+              <button
+                onClick={() => setActiveTab('CAPTAIN_DASHBOARD')}
+                className={`btn ${activeTab === 'CAPTAIN_DASHBOARD' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Crown size={16} /> Captain Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('MY_TEAM')}
+                className={`btn ${activeTab === 'MY_TEAM' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Users size={16} /> My Team Info
+              </button>
+              <button
+                onClick={() => setActiveTab('MATCH_CENTER')}
+                className={`btn ${activeTab === 'MATCH_CENTER' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Calendar size={16} /> Match Center
+              </button>
+              <button
+                onClick={() => setActiveTab('TEAM_PERFORMANCE')}
+                className={`btn ${activeTab === 'TEAM_PERFORMANCE' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <TrendingUp size={16} /> Team Performance Stats
+              </button>
+              <button
+                onClick={() => setActiveTab('CAPTAIN_ANNOUNCEMENTS')}
+                className={`btn ${activeTab === 'CAPTAIN_ANNOUNCEMENTS' ? 'btn-gold' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Newspaper size={16} /> Captain Announcements
+              </button>
+            </>
+          )}
+
+          {/* Spectator Before Auction Role Tabs */}
+          {currentUser.role === 'SPECTATOR' && (
+            <>
+              <button
+                onClick={() => setActiveTab('HOME_PAGE')}
+                className={`btn ${activeTab === 'HOME_PAGE' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <LayoutDashboard size={16} /> Home Page
+              </button>
+              <button
+                onClick={() => setActiveTab('REGISTERED_PLAYERS')}
+                className={`btn ${activeTab === 'REGISTERED_PLAYERS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <UserCheck size={16} /> Registered Players List
+              </button>
+              <button
+                onClick={() => setActiveTab('TEAM_ANNOUNCEMENTS')}
+                className={`btn ${activeTab === 'TEAM_ANNOUNCEMENTS' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Newspaper size={16} /> Team Announcements
+              </button>
+              <button
+                onClick={() => setActiveTab('RULES_CATEGORIES')}
+                className={`btn ${activeTab === 'RULES_CATEGORIES' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <SlidersHorizontal size={16} /> Rules & Categories Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('AUCTION_SCHEDULE')}
+                className={`btn ${activeTab === 'AUCTION_SCHEDULE' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Calendar size={16} /> Auction Schedule
+              </button>
+              <button
+                onClick={() => setActiveTab('NEWS_UPDATES')}
+                className={`btn ${activeTab === 'NEWS_UPDATES' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Newspaper size={16} /> News and Updates
+              </button>
+              <button
+                onClick={() => setActiveTab('COUNTDOWN_TIMER')}
+                className={`btn ${activeTab === 'COUNTDOWN_TIMER' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+              >
+                <Clock size={16} /> Countdown Timer
+              </button>
+            </>
+          )}
 
         </nav>
 

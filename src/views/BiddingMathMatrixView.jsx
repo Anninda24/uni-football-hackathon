@@ -21,6 +21,7 @@ export const BiddingMathMatrixView = () => {
   const [addingMode, setAddingMode] = useState(false);
   const [selectedSegmentId, setSelectedSegmentId] = useState(null);
   const [hoverPct, setHoverPct] = useState(null);
+  const [dragHoverPct, setDragHoverPct] = useState(null);
   const barRef = useRef(null);
   const [draggingBoundary, setDraggingBoundary] = useState(null); // { boundaryIndex } where boundaryIndex is the index in sortedSegments
 
@@ -107,6 +108,7 @@ export const BiddingMathMatrixView = () => {
     if (draggingBoundary === null) return;
     const pct = getPctFromMouse(e);
     const clamped = Math.max(0, Math.min(100, pct));
+    setDragHoverPct(clamped);
 
     setSegments(prev => {
       const sorted = [...prev].sort((a, b) => a.minPct - b.minPct);
@@ -134,6 +136,7 @@ export const BiddingMathMatrixView = () => {
 
   const handleMouseUp = () => {
     setDraggingBoundary(null);
+    setDragHoverPct(null);
   };
 
   React.useEffect(() => {
@@ -157,17 +160,58 @@ export const BiddingMathMatrixView = () => {
       const idx = sorted.findIndex(s => s.id === id);
       if (idx < 0) return prev;
       const target = sorted[idx];
-      const prevSeg = sorted[idx - 1];
-      if (prevSeg) {
-        prevSeg.maxPct = target.maxPct;
+      const updated = [...sorted];
+
+      if (idx === 0 && updated[idx + 1]) {
+        updated[idx + 1] = { ...updated[idx + 1], minPct: 0 };
+      } else if (idx === updated.length - 1 && updated[idx - 1]) {
+        updated[idx - 1] = { ...updated[idx - 1], maxPct: 100 };
+      } else if (updated[idx - 1]) {
+        updated[idx - 1] = { ...updated[idx - 1], maxPct: target.maxPct };
       }
-      return prev.filter(s => s.id !== id).map(s => ({ ...s }));
+
+      return updated.filter(s => s.id !== id).map(s => ({ ...s }));
     });
     if (selectedSegmentId === id) setSelectedSegmentId(null);
   };
 
   const handleSegmentChange = (id, field, value) => {
-    setSegments(prev => prev.map(s => s.id === id ? { ...s, [field]: Number(value) } : s));
+    const num = Number(value);
+    if (isNaN(num)) return;
+
+    setSegments(prev => {
+      const sorted = [...prev].sort((a, b) => a.minPct - b.minPct);
+      const idx = sorted.findIndex(s => s.id === id);
+      if (idx < 0) return prev;
+
+      const seg = sorted[idx];
+      const prevSeg = sorted[idx - 1];
+      const nextSeg = sorted[idx + 1];
+
+      let newMin = seg.minPct;
+      let newMax = seg.maxPct;
+
+      if (field === 'minPct') {
+        newMin = Math.max(0, Math.min(num, seg.maxPct - 1));
+      } else if (field === 'maxPct') {
+        newMax = Math.min(100, Math.max(num, seg.minPct + 1));
+      }
+
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          return { ...s, [field]: field === 'minPct' ? newMin : newMax };
+        }
+        if (prevSeg && s.id === prevSeg.id && field === 'minPct') {
+          return { ...s, maxPct: newMin };
+        }
+        if (nextSeg && s.id === nextSeg.id && field === 'maxPct') {
+          return { ...s, minPct: newMax };
+        }
+        return s;
+      });
+
+      return updated;
+    });
   };
 
   const handleSaveTiers = (e) => {
@@ -230,8 +274,27 @@ export const BiddingMathMatrixView = () => {
                       </button>
                     )}
                   </div>
-                  <div style={{ fontSize: '0.9rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color }}>
-                    {seg.minPct}% – {seg.maxPct}%
+                  <div style={{ fontSize: '0.9rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={seg.minPct}
+                      onChange={(e) => handleSegmentChange(seg.id, 'minPct', Number(e.target.value))}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '60px', background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'inherit', padding: '3px 6px', fontSize: '0.85rem', outline: 'none' }}
+                    />
+                    <span>–</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={seg.maxPct}
+                      onChange={(e) => handleSegmentChange(seg.id, 'maxPct', Number(e.target.value))}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '60px', background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'inherit', padding: '3px 6px', fontSize: '0.85rem', outline: 'none' }}
+                    />
+                    <span style={{ fontSize: '0.8rem' }}>%</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>Raise %</span>
@@ -298,6 +361,7 @@ export const BiddingMathMatrixView = () => {
                   const width = ((seg.maxPct - seg.minPct) / 100) * 100;
                   const color = ['var(--accent-cyan)', 'var(--accent-green)', 'var(--accent-gold)', 'var(--accent-red)', 'var(--accent-purple)'][idx % 5];
                   const isSelected = selectedSegmentId === seg.id;
+                  const isLast = idx === sortedSegments.length - 1;
                   return (
                     <div
                       key={seg.id}
@@ -309,10 +373,53 @@ export const BiddingMathMatrixView = () => {
                         height: '100%',
                         background: color,
                         opacity: isSelected ? 0.6 : 0.35,
-                        borderRight: '2px solid rgba(255,255,255,0.4)',
+                        borderRight: isLast ? 'none' : '2px solid rgba(255,255,255,0.4)',
                         transition: draggingBoundary === null ? 'all 0.2s ease' : 'none'
                       }}
-                    ></div>
+                    >
+                      {/* Boundary handle at segment join */}
+                      {!isLast && (() => {
+                        const boundaryIdx = idx;
+                        const isActive = draggingBoundary === boundaryIdx;
+                        return (
+                          <div
+                            onMouseDown={(e) => handleBoundaryMouseDown(e, boundaryIdx)}
+                            style={{
+                              position: 'absolute',
+                              right: '-1.5px',
+                              top: '-10px',
+                              bottom: '-10px',
+                              width: '3px',
+                              background: '#ffffff',
+                              opacity: 0.95,
+                              cursor: 'ew-resize',
+                              boxShadow: isActive ? '0 0 12px rgba(255,255,255,0.9)' : '0 0 6px rgba(255,255,255,0.5)'
+                            }}
+                          >
+                            {/* Percentage tooltip on drag */}
+                            {isActive && dragHoverPct !== null && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '-28px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: '#ffffff',
+                                color: '#000000',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                zIndex: 10
+                              }}>
+                                {dragHoverPct}%
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   );
                 })}
 
@@ -325,51 +432,6 @@ export const BiddingMathMatrixView = () => {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Boundary Arrows below bar - pointing up */}
-              <div style={{ position: 'relative', height: '32px', marginTop: '-10px' }}>
-                {sortedSegments.slice(0, -1).map((seg, idx) => {
-                  const boundaryPct = seg.maxPct;
-                  const left = boundaryPct + '%';
-                  const color = ['var(--accent-cyan)', 'var(--accent-green)', 'var(--accent-gold)', 'var(--accent-red)', 'var(--accent-purple)'][idx % 5];
-                  const isActive = draggingBoundary === idx;
-                  return (
-                    <div
-                      key={`boundary-${seg.id}`}
-                      onMouseDown={(e) => handleBoundaryMouseDown(e, idx)}
-                      style={{
-                        position: 'absolute',
-                        left,
-                        top: 0,
-                        transform: 'translateX(-50%)',
-                        cursor: 'ew-resize',
-                        zIndex: 5,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0px'
-                      }}
-                    >
-                      {/* Arrow pointing up */}
-                      <div style={{
-                        width: 0,
-                        height: 0,
-                        borderLeft: '7px solid transparent',
-                        borderRight: '7px solid transparent',
-                        borderBottom: `10px solid ${color}`,
-                        filter: isActive ? `drop-shadow(0 0 6px ${color})` : 'none'
-                      }}></div>
-                      {/* Stem going down from bar */}
-                      <div style={{
-                        width: '2px',
-                        height: '10px',
-                        background: color,
-                        opacity: 0.8
-                      }}></div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>
