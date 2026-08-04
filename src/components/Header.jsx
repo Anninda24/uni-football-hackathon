@@ -74,6 +74,32 @@ export function Header({ activeRoute, setActiveRoute }) {
       {/* Global Phase Status & Role Control Tools */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
 
+        {/* Current Phase Indicator Badge */}
+        <div style={{
+          padding: '6px 14px',
+          borderRadius: '20px',
+          border: `1px solid ${currentPhase.badgeColor}55`,
+          background: 'rgba(30, 41, 59, 0.7)',
+          color: '#f8fafc',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span style={{
+            fontSize: '0.68rem',
+            background: `${currentPhase.badgeColor}33`,
+            color: currentPhase.badgeColor,
+            padding: '2px 8px',
+            borderRadius: '10px',
+            fontWeight: 700
+          }}>
+            ACTIVE
+          </span>
+          <span>{currentPhase.label}</span>
+        </div>
+
         {/* User Auth Action Pill — pushed to far right */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAuthenticated ? (
