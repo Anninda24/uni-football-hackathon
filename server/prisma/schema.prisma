@@ -1,0 +1,121 @@
+// Prisma Schema for University Football Franchise & Tournament Platform Backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. User Model
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("SPECTATOR") // SUPER_ADMIN | PODIUM_ADMIN | TEAM_MANAGER | PLAYER | SPECTATOR
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  playerProfile PlayerProfile?
+  managedTeam   Team?
+}
+
+// 2. PlayerProfile Model
+model PlayerProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId          String
+  academicSession    String
+  jerseyName         String
+  primaryPosition    String
+  secondaryPositions String   @default("") // Comma-separated positions e.g., "RW,CAM"
+  basePrice          Float    @default(0)
+  categoryId         String?
+  tierId             String?
+  imageUrl           String?
+  cloudPublicId      String?
+  status             String   @default("REGISTERED") // REGISTERED | SOLD | UNSOLD
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// 3. Team Model
+model Team {
+  id              String   @id @default(uuid())
+  name            String
+  budget          Float    @default(100000)
+  remainingBudget Float    @default(100000)
+  managerId       String?  @unique
+  manager         User?    @relation(fields: [managerId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// 4. CategoryTier Model
+model CategoryTier {
+  id        String   @id @default(uuid())
+  name      String
+  basePrice Float
+  createdAt DateTime @default(now())
+}
+
+// 5. BiddingRule Model
+model BiddingRule {
+  id               String   @id @default(uuid())
+  minBudgetPercent Float
+  maxBudgetPercent Float
+  raiseStep        Float
+  createdAt        DateTime @default(now())
+}
+
+// 6. SystemState Model
+model SystemState {
+  id           String   @id @default(uuid())
+  currentPhase String   @default("SETUP") // SETUP | REGISTRATION | AUCTION | TOURNAMENT
+  updatedAt    DateTime @updatedAt
+}
+
+// 7. AuctionLedger Model
+model AuctionLedger {
+  id        String   @id @default(uuid())
+  playerId  String
+  teamId    String?
+  amount    Float
+  timestamp DateTime @default(now())
+  type      String   @default("NORMAL") // NORMAL | BLIND
+}
+
+// 8. Match Model
+model Match {
+  id            String        @id @default(uuid())
+  teamAId       String
+  teamBId       String
+  scoreA        Int           @default(0)
+  scoreB        Int           @default(0)
+  isTwoLegged   Boolean       @default(false)
+  leg1Score     String?
+  leg2Score     String?
+  status        String        @default("UPCOMING") // UPCOMING | LIVE | COMPLETED
+  scheduledTime DateTime?
+  venue         String?
+  stats         PlayerStats[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// 9. PlayerStats Model
+model PlayerStats {
+  id          String   @id @default(uuid())
+  playerId    String
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  goals       Int      @default(0)
+  assists     Int      @default(0)
+  cleanSheets  Int      @default(0)
+  yellowCards Int      @default(0)
+  redCards    Int      @default(0)
+  createdAt   DateTime @default(now())
+}

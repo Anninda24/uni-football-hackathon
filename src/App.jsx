@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { useSystem } from './context/SystemContext';
-import { AdminSidebar } from './components/AdminSidebar';
-import { LiveValidationBar } from './components/LiveValidationBar';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { SystemPhaseProvider, useSystemPhase } from './context/SystemPhaseContext';
+import { SystemProvider, useSystem } from './context/SystemContext';
+
+// Layout & Components
+import { Header } from './components/Header';
+import { DynamicSidebar } from './components/DynamicSidebar';
+import { PublicLayout } from './components/PublicLayout';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { CommandPalette } from './components/CommandPalette';
 import { NukeModal } from './components/NukeModal';
 import { NotificationsToast } from './components/NotificationsToast';
@@ -20,142 +26,261 @@ import { LiveAuctionView } from './views/LiveAuctionView';
 import { TournamentView } from './views/TournamentView';
 import { CaptainDashboardView } from './views/CaptainDashboardView';
 import { MyTeamInfoView } from './views/MyTeamInfoView';
-import { MatchCenterView } from './views/MatchCenterView';
-import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
-import { CaptainAnnouncementsView } from './views/CaptainAnnouncementsView';
 import { HomePageView } from './views/HomePageView';
-import { RegisteredPlayersListView } from './views/RegisteredPlayersListView';
-import { TeamAnnouncementsView } from './views/TeamAnnouncementsView';
 import { RulesCategoriesOverviewView } from './views/RulesCategoriesOverviewView';
 import { AuctionScheduleView } from './views/AuctionScheduleView';
-import { NewsUpdatesView } from './views/NewsUpdatesView';
-import { CountdownTimerView } from './views/CountdownTimerView';
+import { PlayerRegistrationView } from './views/PlayerRegistrationView';
+import { LoginRegisterView } from './views/LoginRegisterView';
 
-export function App() {
-  const { systemState, currentUser } = useSystem();
-  
-  // Active Module State (2-Column Shell Navigation)
-  const [activeModule, setActiveModule] = useState('MISSION_CONTROL');
+function AppContent() {
+  const { currentUser } = useAuth();
+  const { isAuction, isTournament } = useSystemPhase();
+
+  // Active Route state
+  const [activeRoute, setActiveRoute] = useState('DEFAULT');
 
   // Command Palette & Nuke Modal States
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showNukeModal, setShowNukeModal] = useState(false);
 
-  // Targets for deep linking from Command Palette
+  // Targets for deep linking
   const [editPlayerTarget, setEditPlayerTarget] = useState(null);
   const [editManagerTarget, setEditManagerTarget] = useState(null);
 
-  // Render Active Workspace Module
-  const renderActiveModule = () => {
-    switch (activeModule) {
-      case 'MISSION_CONTROL':
-        return <MissionControlView />;
-      case 'FINANCIAL_RULES':
-        return <FinancialRulesView />;
-      case 'CATEGORIES':
-        return <CategoryManagerView />;
-      case 'BIDDING_MATRIX':
-        return <BiddingMathMatrixView />;
-      case 'PLAYERS':
-        return <PlayerDirectoryView initialEditPlayer={editPlayerTarget} />;
-      case 'TEAMS':
-        return <FranchiseTeamView />;
-      case 'MANAGERS':
-        return <ManagerManagementView initialEditManager={editManagerTarget} />;
-      case 'LIVE_OPERATIONS':
-        return <LiveOperationsView onNavigateToTab={setActiveModule} />;
-      case 'DANGER_ZONE':
-        return <DangerZoneView onOpenNukeModal={() => setShowNukeModal(true)} />;
-      case 'TOURNAMENT':
-        return <TournamentView defaultTab="MATCHES" />;
-      case 'CAPTAIN_DASHBOARD':
-        return <CaptainDashboardView />;
-      case 'MY_TEAM':
-        return <MyTeamInfoView />;
-      case 'MATCH_CENTER':
-        return <MatchCenterView />;
-      case 'TEAM_PERFORMANCE':
-        return <TeamPerformanceStatsView />;
-      case 'CAPTAIN_ANNOUNCEMENTS':
-        return <CaptainAnnouncementsView />;
-      case 'HOME_PAGE':
-        return <HomePageView />;
-      case 'REGISTERED_PLAYERS':
-        return <RegisteredPlayersListView />;
-      case 'TEAM_ANNOUNCEMENTS':
-        return <TeamAnnouncementsView />;
-      case 'RULES_CATEGORIES':
-        return <RulesCategoriesOverviewView />;
-      case 'AUCTION_SCHEDULE':
-        return <AuctionScheduleView />;
-      case 'NEWS_UPDATES':
-        return <NewsUpdatesView />;
-      case 'COUNTDOWN_TIMER':
-        return <CountdownTimerView />;
+  // Get default route when role changes or DEFAULT is requested
+  const getDefaultRouteForRole = (role) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'SUPER_ADMIN_DASHBOARD';
+      case 'PLAYER':
+        return 'PLAYER_MY_PROFILE';
+      case 'TEAM_MANAGER':
+        return 'MANAGER_MY_TEAM';
+      case 'PODIUM_ADMIN':
+        return 'PODIUM_AUCTION_CONTROL';
+      case 'SPECTATOR':
       default:
-        return <MissionControlView />;
+        return 'PUBLIC_HOME';
     }
   };
 
+  const effectiveRoute = activeRoute === 'DEFAULT' ? getDefaultRouteForRole(currentUser.role) : activeRoute;
+
+  // Sync active route when user role changes
+  useEffect(() => {
+    if (activeRoute === 'DEFAULT') return;
+    // Reset to role's default if switching away from spectator to dashboard role
+    if (currentUser.role === 'SPECTATOR' && !effectiveRoute.startsWith('PUBLIC_')) {
+      setActiveRoute('PUBLIC_HOME');
+    }
+  }, [currentUser.role]);
+
+  // View Resolver strictly mapping routes to components
+  const renderRouteView = () => {
+    switch (effectiveRoute) {
+      // --- SUPER ADMIN ROUTES ---
+      case 'SUPER_ADMIN_DASHBOARD':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MissionControlView />
+          </ProtectedRoute>
+        );
+
+      case 'SUPER_ADMIN_AUCTION_RULES':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <FinancialRulesView />
+              <BiddingMathMatrixView />
+            </div>
+          </ProtectedRoute>
+        );
+
+      case 'SUPER_ADMIN_PLAYER_POOL_CATEGORY':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <CategoryManagerView />
+              <PlayerDirectoryView initialEditPlayer={editPlayerTarget} />
+            </div>
+          </ProtectedRoute>
+        );
+
+      case 'SUPER_ADMIN_TEAM_MANAGEMENT':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <FranchiseTeamView />
+              <ManagerManagementView initialEditManager={editManagerTarget} />
+            </div>
+          </ProtectedRoute>
+        );
+
+      case 'SUPER_ADMIN_SETTINGS':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <DangerZoneView onOpenNukeModal={() => setShowNukeModal(true)} />
+          </ProtectedRoute>
+        );
+
+      // --- PLAYER ROUTES ---
+      case 'PLAYER_MY_PROFILE':
+        return (
+          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerRegistrationView />
+          </ProtectedRoute>
+        );
+
+      case 'PLAYER_MY_TEAM':
+        return (
+          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN', 'TEAM_MANAGER']} onUnauthorizedRedirect={setActiveRoute}>
+            <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      // --- TEAM MANAGER ROUTES ---
+      case 'MANAGER_MY_PROFILE':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <ManagerManagementView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_MY_TEAM':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_AUCTION':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <LiveAuctionView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_ICON_PLAYERS':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <CaptainDashboardView />
+          </ProtectedRoute>
+        );
+
+      // --- PODIUM ADMIN ROUTES ---
+      case 'PODIUM_PLAYER_POOL':
+        return (
+          <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerDirectoryView />
+          </ProtectedRoute>
+        );
+
+      case 'PODIUM_AUCTION_CONTROL':
+        return (
+          <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <LiveAuctionView />
+          </ProtectedRoute>
+        );
+
+      case 'PODIUM_TEAMS':
+        return (
+          <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <FranchiseTeamView />
+          </ProtectedRoute>
+        );
+
+      case 'PODIUM_AUCTION_HISTORY':
+        return (
+          <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <LiveOperationsView onNavigateToTab={() => {}} />
+          </ProtectedRoute>
+        );
+
+      // --- PUBLIC / SPECTATOR ROUTES ---
+      case 'PUBLIC_HOME':
+        return <HomePageView />;
+
+      case 'PUBLIC_LOGIN':
+        return <LoginRegisterView onLoginSuccess={() => setActiveRoute('DEFAULT')} />;
+
+      case 'PUBLIC_RULEBOOK':
+        return <RulesCategoriesOverviewView />;
+
+      case 'PUBLIC_SCHEDULE':
+        return <AuctionScheduleView />;
+
+      case 'PUBLIC_LIVE_AUCTION':
+        return (
+          <ProtectedRoute allowedPhases={['AUCTION']} onUnauthorizedRedirect={setActiveRoute}>
+            <LiveAuctionView />
+          </ProtectedRoute>
+        );
+
+      case 'PUBLIC_LIVE_TOURNAMENT':
+        return (
+          <ProtectedRoute allowedPhases={['TOURNAMENT']} onUnauthorizedRedirect={setActiveRoute}>
+            <TournamentView defaultTab="MATCHES" />
+          </ProtectedRoute>
+        );
+
+      default:
+        return <HomePageView />;
+    }
+  };
+
+  // Determine whether to render Public Landing Page Layout or Dashboard Shell Layout
+  const isPublicLayout = currentUser.role === 'SPECTATOR' || effectiveRoute.startsWith('PUBLIC_');
+
+  if (isPublicLayout) {
+    return (
+      <PublicLayout activeRoute={effectiveRoute} setActiveRoute={setActiveRoute}>
+        {renderRouteView()}
+      </PublicLayout>
+    );
+  }
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg-dark)', color: 'var(--text-main)' }}>
-      
-      {/* 2-Column Shell Column 1: Left Sidebar Navigation */}
-      <AdminSidebar
-        activeModule={activeModule}
-        setActiveModule={(mod) => {
-          setEditPlayerTarget(null);
-          setEditManagerTarget(null);
-          setActiveModule(mod);
-        }}
-        setShowNukeModal={setShowNukeModal}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
-      />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-dark, #0b0f19)', color: 'var(--text-main, #f8fafc)' }}>
+      {/* Dynamic Top Header */}
+      <Header activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-      {/* 2-Column Shell Column 2: Main Workspace */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden' }}>
-        
-        {/* Persistent Live Validation Header Bar (Phase 1 Prerequisites Bar) */}
-        <LiveValidationBar />
+      {/* 2-Column Shell Container */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 'calc(100vh - 70px)' }}>
+        {/* Role-Specific Dynamic Sidebar */}
+        <DynamicSidebar activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-        {/* Workspace Main Content Container */}
-        <main style={{ flex: 1, padding: '24px', width: '100%', maxWidth: '1600px', margin: '0 auto' }}>
-          {renderActiveModule()}
+        {/* Main Workspace Workspace Area */}
+        <main style={{ flex: 1, padding: '28px', width: '100%', maxWidth: '1600px', margin: '0 auto', overflowX: 'hidden' }}>
+          {renderRouteView()}
         </main>
-
-        {/* Admin Footer */}
-        <footer style={{ borderTop: '1px solid var(--border-color)', padding: '16px 24px', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-dim)', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>UniLeague Admin Architecture • 2-Column Shell & State Machine System</div>
-          <div style={{ fontSize: '0.75rem' }}>
-            Current Active Phase: <strong style={{ color: 'var(--accent-green)' }}>{systemState.currentPhase}</strong> | Actor: <strong style={{ color: 'var(--accent-cyan)' }}>{currentUser.name} ({currentUser.role})</strong>
-          </div>
-        </footer>
-
       </div>
 
-      {/* Quick Action Command Palette Modal (Cmd+K / Ctrl+K) */}
+      {/* Command Palette Modal */}
       <CommandPalette
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
-        setActiveModule={setActiveModule}
-        onEditPlayer={(p) => {
-          setEditPlayerTarget(p);
-          setActiveModule('PLAYERS');
-        }}
-        onEditManager={(m) => {
-          setEditManagerTarget(m);
-          setActiveModule('MANAGERS');
-        }}
+        setActiveModule={setActiveRoute}
+        onEditPlayer={(p) => setEditPlayerTarget(p)}
+        onEditManager={(m) => setEditManagerTarget(m)}
       />
 
-      {/* Nuke Reset Modal */}
-      {showNukeModal && (
-        <NukeModal onClose={() => setShowNukeModal(false)} />
-      )}
+      {/* Nuke Modal */}
+      {showNukeModal && <NukeModal onClose={() => setShowNukeModal(false)} />}
 
-      {/* Toast Alerts */}
+      {/* Toast System */}
       <NotificationsToast />
-
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <SystemPhaseProvider>
+        <SystemProvider>
+          <AppContent />
+        </SystemProvider>
+      </SystemPhaseProvider>
+    </AuthProvider>
   );
 }
