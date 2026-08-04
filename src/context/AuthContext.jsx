@@ -58,24 +58,34 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('ff_current_user', JSON.stringify(currentUser));
   }, [currentUser]);
 
-  // Login method supporting email/password or role selection
-  const login = (email, password, preferredRole = 'SPECTATOR') => {
-    // Check preset accounts matching role or email
-    const matchedPreset = Object.values(PRESET_ACCOUNTS).find(
-      acc => acc.email.toLowerCase() === email?.toLowerCase() || acc.role === preferredRole
-    );
+  // Login method supporting email/username and password
+  const login = (usernameOrEmail, password, preferredRole = null) => {
+    const query = (usernameOrEmail || '').toLowerCase().trim();
+    
+    // Check preset accounts matching email, id, name prefix or role keyword
+    const matchedPreset = Object.values(PRESET_ACCOUNTS).find(acc => {
+      if (!query) return false;
+      const emailMatch = acc.email.toLowerCase() === query;
+      const nameMatch = acc.name.toLowerCase().includes(query) || query.includes(acc.name.toLowerCase().split(' ')[0]);
+      const roleMatch = acc.role.toLowerCase() === query || acc.role.toLowerCase().replace('_', '') === query.replace('_', '');
+      const idMatch = acc.id.toLowerCase() === query;
+      return emailMatch || nameMatch || roleMatch || idMatch;
+    });
 
     if (matchedPreset) {
       setCurrentUser(matchedPreset);
       return { success: true, user: matchedPreset };
     }
 
+    // Default target role based on username keywords if specified
+    const targetRole = preferredRole || (query.includes('admin') ? 'SUPER_ADMIN' : query.includes('podium') ? 'PODIUM_ADMIN' : query.includes('mgr') || query.includes('manager') || query.includes('alex') ? 'TEAM_MANAGER' : 'SUPER_ADMIN');
+
     const newUser = {
       id: `usr-${Date.now()}`,
-      name: email.split('@')[0] || 'Authenticated User',
-      email,
-      role: preferredRole,
-      avatar: preferredRole === 'TEAM_MANAGER' ? '👔' : preferredRole === 'PLAYER' ? '⚽' : '👤',
+      name: usernameOrEmail ? (usernameOrEmail.split('@')[0] || usernameOrEmail) : 'Super Admin',
+      email: usernameOrEmail && usernameOrEmail.includes('@') ? usernameOrEmail : `${usernameOrEmail || 'admin'}@football.com`,
+      role: targetRole,
+      avatar: targetRole === 'SUPER_ADMIN' ? '⚡' : targetRole === 'TEAM_MANAGER' ? '👔' : '👤',
       teamId: null
     };
 

@@ -1,14 +1,18 @@
 import React from 'react';
-import { useSystem } from '../context/SystemContext';
+import { useTournament } from '../hooks/useTournament';
 import { Calendar, Award, Clock, Users } from 'lucide-react';
 
 export const MatchCenterView = () => {
-  const { fixtures, teams, players } = useSystem();
+  const { matches, standings, leaderboards, loading, error } = useTournament();
 
-  const getTeam = (teamId) => teams.find(t => t.id === teamId);
+  const [rightTab, setRightTab] = useState('UPCOMING');
 
-  const upcomingFixtures = fixtures.filter(f => f.status === 'UPCOMING');
-  const completedFixtures = fixtures.filter(f => f.status === 'COMPLETED');
+  const getTeam = (teamId) => {
+    return { id: teamId, name: teamId };
+  };
+
+  const upcomingFixtures = matches.filter(f => f.status === 'UPCOMING');
+  const completedFixtures = matches.filter(f => f.status === 'COMPLETED');
 
   const getResultBadge = (homeScore, awayScore) => {
     if (homeScore > awayScore) return 'W';
@@ -27,6 +31,9 @@ export const MatchCenterView = () => {
     const d = new Date(dateStr);
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
+
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading matches...</div>;
+  if (error) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--accent-red)' }}>Error: {error}</div>;
 
   return (
     <div style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -67,8 +74,8 @@ export const MatchCenterView = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {upcomingFixtures.map(fixture => {
-              const homeTeam = getTeam(fixture.homeTeamId);
-              const awayTeam = getTeam(fixture.awayTeamId);
+              const homeTeam = getTeam(fixture.teamAId);
+              const awayTeam = getTeam(fixture.teamBId);
 
               return (
                 <div key={fixture.id} style={{
@@ -127,11 +134,11 @@ export const MatchCenterView = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        {formatDate(fixture.date)}
+                        {formatDate(fixture.scheduledTime)}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', marginTop: '2px' }}>
                         <Clock size={10} color="var(--text-dim)" />
-                        {formatTime(fixture.date)}
+                        {formatTime(fixture.scheduledTime)}
                       </div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
                         <Users size={10} color="var(--text-dim)" style={{ verticalAlign: 'middle', marginRight: '3px' }} />
@@ -139,12 +146,12 @@ export const MatchCenterView = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
-                      {fixture.isLegged && (
+                      {fixture.isTwoLegged && (
                         <span className="badge badge-gold" style={{ fontSize: '0.6rem' }}>
                           Leg {fixture.leg}
                         </span>
                       )}
-                      {fixture.pairedFixtureId && (
+                      {fixture.pairedMatchId && (
                         <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>
                           2-Legged
                         </span>
@@ -174,9 +181,9 @@ export const MatchCenterView = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {completedFixtures.map(fixture => {
-              const homeTeam = getTeam(fixture.homeTeamId);
-              const awayTeam = getTeam(fixture.awayTeamId);
-              const result = getResultBadge(fixture.homeScore, fixture.awayScore);
+              const homeTeam = getTeam(fixture.teamAId);
+              const awayTeam = getTeam(fixture.teamBId);
+              const result = getResultBadge(fixture.scoreA, fixture.scoreB);
 
               const bgColor = result === 'W' ? 'rgba(0,230,153,0.07)' : result === 'L' ? 'rgba(255,77,109,0.07)' : 'rgba(255,183,3,0.07)';
               const borderColor = result === 'W' ? 'rgba(0,230,153,0.2)' : result === 'L' ? 'rgba(255,77,109,0.2)' : 'rgba(255,183,3,0.2)';
@@ -236,7 +243,7 @@ export const MatchCenterView = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        {formatDate(fixture.date)}
+                        {formatDate(fixture.scheduledTime)}
                       </div>
                       <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', marginTop: '2px' }}>
                         {fixture.venue}
@@ -247,7 +254,7 @@ export const MatchCenterView = () => {
                         fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.05rem',
                         color: 'var(--text-primary)'
                       }}>
-                        {fixture.homeScore} - {fixture.awayScore}
+                        {fixture.scoreA} - {fixture.scoreB}
                       </span>
                       <span className={`badge ${badgeClass}`} style={{ fontSize: '0.65rem', padding: '4px 10px' }}>
                         {result}

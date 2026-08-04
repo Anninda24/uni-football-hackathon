@@ -1,9 +1,10 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useSystem } from '../context/SystemContext';
 import { Bomb, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 export const DangerZoneView = ({ onOpenNukeModal }) => {
-  const { currentUser } = useSystem();
+  const { currentUser } = useAuth();
 
   const isSuperAdmin = currentUser.role === 'SUPER_ADMIN';
 

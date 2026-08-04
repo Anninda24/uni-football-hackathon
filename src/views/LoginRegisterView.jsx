@@ -9,9 +9,8 @@ export function LoginRegisterView({ onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState('LOGIN'); // 'LOGIN' or 'REGISTER'
 
   // Login form state
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('SUPER_ADMIN');
 
   // Registration form state
   const [regName, setRegName] = useState('');
@@ -22,8 +21,8 @@ export function LoginRegisterView({ onLoginSuccess }) {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (!email) return;
-    const res = login(email, password, selectedRole);
+    if (!username) return;
+    const res = login(username, password);
     if (res.success && onLoginSuccess) {
       onLoginSuccess();
     }
@@ -97,7 +96,7 @@ export function LoginRegisterView({ onLoginSuccess }) {
             Platform Portal Access
           </h2>
           <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>
-            Select a quick demo persona or log in with your account credentials.
+            Enter your credentials or select a quick demo persona to access your workspace.
           </p>
 
           {/* Quick Preset Selector */}
@@ -137,12 +136,13 @@ export function LoginRegisterView({ onLoginSuccess }) {
           <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '24px' }}>
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Email Address</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Username or Email</label>
                 <input
-                  type="email"
-                  placeholder="name@university.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  required
+                  placeholder="e.g. admin or admin@football.com"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -155,10 +155,13 @@ export function LoginRegisterView({ onLoginSuccess }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Role</label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -167,12 +170,7 @@ export function LoginRegisterView({ onLoginSuccess }) {
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     color: '#fff'
                   }}
-                >
-                  <option value="SUPER_ADMIN">Super Admin</option>
-                  <option value="TEAM_MANAGER">Team Manager</option>
-                  <option value="PODIUM_ADMIN">Podium Admin</option>
-                  <option value="PLAYER">Player</option>
-                </select>
+                />
               </div>
 
               <button

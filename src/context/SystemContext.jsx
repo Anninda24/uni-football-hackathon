@@ -630,7 +630,7 @@ export const SystemProvider = ({ children }) => {
   };
 
   // --- AUTOMATED POINTS TABLE CALCULATION ENGINE ---
-  // Calculates live standings based on match scores (Single and 2-Legged)
+  // Calculates live standings based on match scores (Single and 2-Legged aggregate)
   const calculatePointsTable = () => {
     const tableMap = {};
     teams.forEach(t => {
@@ -649,8 +649,19 @@ export const SystemProvider = ({ children }) => {
       };
     });
 
+    const processedPairs = new Set();
+
     fixtures.forEach(fix => {
-      if (fix.status === 'COMPLETED') {
+      if (fix.status !== 'COMPLETED') return;
+
+      if (fix.isLegged && fix.pairedFixtureId) {
+        if (processedPairs.has(fix.pairedFixtureId)) return;
+
+        const pairedFix = fixtures.find(f => f.id === fix.pairedFixtureId);
+        if (!pairedFix || pairedFix.status !== 'COMPLETED') return;
+
+        processedPairs.add(fix.id);
+
         const home = tableMap[fix.homeTeamId];
         const away = tableMap[fix.awayTeamId];
 
@@ -658,6 +669,42 @@ export const SystemProvider = ({ children }) => {
           home.played += 1;
           away.played += 1;
 
+          let aggHome, aggAway;
+          if (fix.leg === 1) {
+            aggHome = fix.homeScore + pairedFix.awayScore;
+            aggAway = fix.awayScore + pairedFix.homeScore;
+          } else {
+            aggHome = pairedFix.homeScore + fix.awayScore;
+            aggAway = pairedFix.awayScore + fix.homeScore;
+          }
+
+          home.gf += aggHome;
+          home.ga += aggAway;
+          away.gf += aggAway;
+          away.ga += aggHome;
+
+          if (aggHome > aggAway) {
+            home.won += 1;
+            home.points += 3;
+            away.lost += 1;
+          } else if (aggHome < aggAway) {
+            away.won += 1;
+            away.points += 3;
+            home.lost += 1;
+          } else {
+            home.drawn += 1;
+            home.points += 1;
+            away.drawn += 1;
+            away.points += 1;
+          }
+        }
+      } else if (!fix.isLegged) {
+        const home = tableMap[fix.homeTeamId];
+        const away = tableMap[fix.awayTeamId];
+
+        if (home && away) {
+          home.played += 1;
+          away.played += 1;
           home.gf += fix.homeScore;
           home.ga += fix.awayScore;
           away.gf += fix.awayScore;
@@ -685,7 +732,6 @@ export const SystemProvider = ({ children }) => {
       row.gd = row.gf - row.ga;
     });
 
-    // Sort by Points desc, Goal Difference desc, Goals For desc, Wins desc
     return Object.values(tableMap).sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.gd !== a.gd) return b.gd - a.gd;

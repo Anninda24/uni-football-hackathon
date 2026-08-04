@@ -51,6 +51,9 @@ export const createMatch = async (req, res) => {
         where: { id: match.id },
         data: { pairedMatchId: returnLeg.id }
       });
+
+      // Re-fetch the first leg to include the back-link in the response
+      match = await prisma.match.findUnique({ where: { id: match.id } });
     }
 
     return res.status(201).json({ success: true, match, returnLeg });
@@ -172,7 +175,7 @@ export const updateScore = async (req, res) => {
     // Broadcast via Socket.IO (get io from global)
     const io = req.app.get('io');
     if (io) {
-      io.emit('match_score_update', { matchId: id, scoreA: match.scoreA, scoreB: match.scoreB, status: match.status, aggScoreA: match.aggScoreA, aggScoreB: match.aggScoreB });
+      io.to(`match_${id}`).emit('match_score_update', { matchId: id, scoreA: match.scoreA, scoreB: match.scoreB, status: match.status, aggScoreA: match.aggScoreA, aggScoreB: match.aggScoreB });
     }
 
     return res.status(200).json({ success: true, match });
@@ -197,7 +200,7 @@ export const getStandings = async (req, res) => {
 
     const ensureTeam = (id, name) => {
       if (!teamsMap[id]) {
-        teamsMap[id] = { id, name, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+        teamsMap[id] = { teamId: id, name, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
       }
     };
 

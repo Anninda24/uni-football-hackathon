@@ -5,11 +5,10 @@ import { Shield, Home, LogIn, BookOpen, Calendar, Radio, Trophy, Lock, UserCheck
 
 export function PublicLayout({ activeRoute, setActiveRoute, children }) {
   const { currentPhase, isAuction, isTournament } = useSystemPhase();
-  const { currentUser, switchRole } = useAuth();
+  const { currentUser } = useAuth();
 
   const navItems = [
     { id: 'PUBLIC_HOME', label: 'Home', icon: Home, enabled: true },
-    { id: 'PUBLIC_LOGIN', label: 'Login / Register', icon: LogIn, enabled: true },
     { id: 'PUBLIC_RULEBOOK', label: 'Rulebook', icon: BookOpen, enabled: true },
     { id: 'PUBLIC_SCHEDULE', label: 'Schedule', icon: Calendar, enabled: true },
     {
@@ -61,7 +60,7 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
             <Shield style={{ color: '#fff', width: '22px', height: '22px' }} />
           </div>
           <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f8fafc' }}>
-            UniLeague <span style={{ color: '#3b82f6' }}>Football</span>
+            GSTU CSE <span style={{ color: '#3b82f6' }}>FOOTBALL TOURNAMENT</span>
           </span>
         </div>
 
@@ -169,7 +168,7 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
         flexWrap: 'wrap',
         gap: '12px'
       }}>
-        <div>UniLeague Football Franchise & Tournament Platform</div>
+        <div>GSTU CSE Football Tournament — Official Departmental Franchise & Tournament Platform</div>
         <div>Current League Phase: <strong style={{ color: currentPhase.badgeColor }}>{currentPhase.label}</strong></div>
       </footer>
     </div>

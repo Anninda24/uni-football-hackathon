@@ -31,6 +31,9 @@ import { RulesCategoriesOverviewView } from './views/RulesCategoriesOverviewView
 import { AuctionScheduleView } from './views/AuctionScheduleView';
 import { PlayerRegistrationView } from './views/PlayerRegistrationView';
 import { LoginRegisterView } from './views/LoginRegisterView';
+import { AuctionRulesTabbedView } from './views/AuctionRulesTabbedView';
+import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
+import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -89,30 +92,21 @@ function AppContent() {
       case 'SUPER_ADMIN_AUCTION_RULES':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <FinancialRulesView />
-              <BiddingMathMatrixView />
-            </div>
+            <AuctionRulesTabbedView />
           </ProtectedRoute>
         );
 
       case 'SUPER_ADMIN_PLAYER_POOL_CATEGORY':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <CategoryManagerView />
-              <PlayerDirectoryView initialEditPlayer={editPlayerTarget} />
-            </div>
+            <PlayerPoolTabbedView initialEditPlayer={editPlayerTarget} />
           </ProtectedRoute>
         );
 
       case 'SUPER_ADMIN_TEAM_MANAGEMENT':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <FranchiseTeamView />
-              <ManagerManagementView initialEditManager={editManagerTarget} />
-            </div>
+            <TeamManagementTabbedView initialEditManager={editManagerTarget} />
           </ProtectedRoute>
         );
 
@@ -198,7 +192,7 @@ function AppContent() {
 
       // --- PUBLIC / SPECTATOR ROUTES ---
       case 'PUBLIC_HOME':
-        return <HomePageView />;
+        return <HomePageView onNavigate={setActiveRoute} />;
 
       case 'PUBLIC_LOGIN':
         return <LoginRegisterView onLoginSuccess={() => setActiveRoute('DEFAULT')} />;
@@ -224,7 +218,7 @@ function AppContent() {
         );
 
       default:
-        return <HomePageView />;
+        return <HomePageView onNavigate={setActiveRoute} />;
     }
   };
 

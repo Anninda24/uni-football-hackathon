@@ -16,12 +16,13 @@ import {
   History,
   Home,
   LogIn,
+  LogOut,
   Crown,
   Lock
 } from 'lucide-react';
 
 export function DynamicSidebar({ activeRoute, setActiveRoute }) {
-  const { currentUser } = useAuth();
+  const { currentUser, logout, isAuthenticated } = useAuth();
   const { currentPhaseId, isAuction, isTournament } = useSystemPhase();
 
   const role = currentUser.role;
@@ -64,7 +65,6 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
       default:
         return [
           { id: 'PUBLIC_HOME', label: 'Home', icon: Home, enabled: true },
-          { id: 'PUBLIC_LOGIN', label: 'Login/Register', icon: LogIn, enabled: true },
           { id: 'PUBLIC_RULEBOOK', label: 'Rulebook', icon: BookOpen, enabled: true },
           { id: 'PUBLIC_SCHEDULE', label: 'Schedule', icon: Calendar, enabled: true },
           {
@@ -97,7 +97,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
       minHeight: 'calc(100vh - 70px)',
       padding: '20px 14px'
     }}>
-      {/* Sidebar Role Header */}
+      {/* Sidebar Role Header & Auth Action */}
       <div style={{
         padding: '12px 14px',
         marginBottom: '16px',
@@ -105,18 +105,49 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         background: 'rgba(30, 41, 59, 0.6)',
         border: '1px solid rgba(255, 255, 255, 0.05)',
         display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
+        flexDirection: 'column',
+        gap: '10px'
       }}>
-        <div style={{ fontSize: '1.4rem' }}>{currentUser.avatar || '🛡️'}</div>
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {currentUser.name}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {role.replace('_', ' ')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ fontSize: '1.4rem' }}>{currentUser.avatar || '🛡️'}</div>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentUser.name}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {role.replace('_', ' ')}
+            </div>
           </div>
         </div>
+
+        {/* Log Out Button - positioned above Main Menu tabs */}
+        {isAuthenticated && (
+          <button
+            onClick={() => {
+              logout();
+              if (setActiveRoute) setActiveRoute('PUBLIC_HOME');
+            }}
+            style={{
+              width: '100%',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#ef4444',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogOut style={{ width: '14px', height: '14px' }} />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
 
       {/* Dynamic Navigation Links */}

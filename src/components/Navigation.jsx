@@ -11,7 +11,6 @@ import {
   Calendar, 
   Award, 
   Newspaper,
-  Shield,
   SlidersHorizontal,
   ChevronRight,
   Star,
@@ -22,17 +21,7 @@ import {
 } from 'lucide-react';
 
 export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
-  const { systemState, changePhase, currentUser, setCurrentUser, teams } = useSystem();
-
-  const handleRoleChange = (role) => {
-    setCurrentUser({
-      id: role === 'ICON_PLAYER' ? 'usr-icon-player' : role === 'SPECTATOR' ? 'usr-spectator' : 'usr-super-admin',
-      name: role === 'ICON_PLAYER' ? 'Icon Player' : role === 'SPECTATOR' ? 'Spectator (Before Auction)' : 'Super Admin',
-      email: role === 'ICON_PLAYER' ? 'icon@football.com' : role === 'SPECTATOR' ? 'spectator@football.com' : 'admin@football.com',
-      role,
-      teamId: null
-    });
-  };
+  const { systemState, changePhase, currentUser, teams } = useSystem();
 
   const getPhaseBadgeColor = (phase) => {
     switch (phase) {
@@ -108,34 +97,8 @@ export const Navigation = ({ activeTab, setActiveTab, setShowNukeModal }) => {
             )}
           </div>
 
-          {/* Right: Actor Switcher & Nuke Trigger */}
+          {/* Right: Nuke Trigger */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-input)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <Shield size={16} color="var(--accent-cyan)" />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ACTOR SIMULATOR</span>
-                <select
-                  value={currentUser.role}
-                  onChange={(e) => handleRoleChange(e.target.value)}
-                  style={{
-                    background: '#121826',
-                    border: '1px solid var(--accent-cyan)',
-                    borderRadius: '6px',
-                    color: 'var(--accent-cyan)',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    cursor: 'pointer',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="SUPER_ADMIN" style={{ background: '#121826', color: '#f8fafc' }}>👑 Super Admin</option>
-                  <option value="ICON_PLAYER" style={{ background: '#121826', color: '#f8fafc' }}>⭐ Icon Player</option>
-                  <option value="SPECTATOR" style={{ background: '#121826', color: '#f8fafc' }}>👁️ Spectator (Before Auction)</option>
-                </select>
-              </div>
-            </div>
-
             {/* Nuke Protocol Button (Super Admin) */}
             {currentUser.role === 'SUPER_ADMIN' && (
               <button 

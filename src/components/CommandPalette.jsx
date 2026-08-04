@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSystem } from '../context/SystemContext';
+import { useAuth } from '../context/AuthContext';
 import { Search, User, Shield, Users, Layers, Activity, Gavel, Key, Radio, X } from 'lucide-react';
 
 export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer, onEditManager }) => {
   const { players, managers, teams, systemState, changePhase } = useSystem();
+  const { currentUser } = useAuth();
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -75,40 +77,42 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '420px', overflowY: 'auto' }}>
           
-          {/* System Phase Actions */}
-          <div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px' }}>
-              SYSTEM PHASE QUICK ACTIONS
+          {/* System Phase Actions — SUPER_ADMIN only */}
+          {currentUser.role === 'SUPER_ADMIN' && (
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                SYSTEM PHASE QUICK ACTIONS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {['SETUP', 'REGISTRATION', 'THE_AUCTION', 'TOURNAMENT'].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      changePhase(p);
+                      onClose();
+                    }}
+                    style={{
+                      background: systemState.currentPhase === p ? 'rgba(0, 230, 153, 0.2)' : 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: 'var(--text-main)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span>Switch to {p}</span>
+                    {systemState.currentPhase === p && <span className="badge badge-green">ACTIVE</span>}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {['SETUP', 'REGISTRATION', 'THE_AUCTION', 'TOURNAMENT'].map(p => (
-                <button
-                  key={p}
-                  onClick={() => {
-                    changePhase(p);
-                    onClose();
-                  }}
-                  style={{
-                    background: systemState.currentPhase === p ? 'rgba(0, 230, 153, 0.2)' : 'var(--bg-input)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    color: 'var(--text-main)',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>Switch to {p}</span>
-                  {systemState.currentPhase === p && <span className="badge badge-green">ACTIVE</span>}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Sockets / Health Check */}
           <div>

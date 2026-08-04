@@ -1,9 +1,11 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useSystem } from '../context/SystemContext';
 import { CheckCircle2, XCircle, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export const LiveValidationBar = () => {
-  const { systemState, teams, changePhase, currentUser } = useSystem();
+  const { currentUser } = useAuth();
+  const { systemState, teams, changePhase } = useSystem();
 
   const isMinTeams = teams.length >= 2;
   const isHasTier = (systemState.categories || []).length >= 1;

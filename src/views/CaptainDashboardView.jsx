@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useSystem } from '../context/SystemContext';
 import {
   Crown, Users, TrendingUp, Calendar, DollarSign, Shield,
@@ -6,7 +7,8 @@ import {
 } from 'lucide-react';
 
 export const CaptainDashboardView = () => {
-  const { teams, players, systemState, currentUser } = useSystem();
+  const { currentUser } = useAuth();
+  const { teams, players, systemState } = useSystem();
 
   // For demo purposes, show the first team as "My Team" for icon player
   const myTeam = teams[0];

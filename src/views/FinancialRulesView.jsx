@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
-import { Sliders, DollarSign, Users, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Sliders, DollarSign } from 'lucide-react';
 
 export const FinancialRulesView = () => {
   const { systemState, setSystemState, setTeams, addNotification } = useSystem();
@@ -28,7 +28,6 @@ export const FinancialRulesView = () => {
       maxRoster: maxRosterNum
     }));
 
-    // Update unspent budget allowance for existing teams
     setTeams(prev => prev.map(t => ({
       ...t,
       budget: budgetNum - t.spent
@@ -50,103 +49,66 @@ export const FinancialRulesView = () => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
-        
-        {/* Form Card */}
-        <div className="glass-panel" style={{ padding: '28px' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <DollarSign color="var(--accent-gold)" /> Financial Allowance Settings
-          </h3>
+      <div className="glass-panel" style={{ padding: '28px' }}>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <DollarSign color="var(--accent-gold)" /> Financial Allowance Settings
+        </h3>
 
-          <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Total Team Budget Allowance ($)</label>
+            <input
+              type="number"
+              className="form-control"
+              value={totalBudget}
+              onChange={(e) => setTotalBudget(e.target.value)}
+              step="5000"
+              min="10000"
+              required
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+              Equal starting allowance allocated to all franchise teams ($100,000 default).
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div className="form-group">
-              <label className="form-label">Total Team Budget Allowance ($)</label>
+              <label className="form-label">Min Roster Size</label>
               <input
                 type="number"
                 className="form-control"
-                value={totalBudget}
-                onChange={(e) => setTotalBudget(e.target.value)}
-                step="5000"
-                min="10000"
+                value={minRoster}
+                onChange={(e) => setMinRoster(e.target.value)}
+                min="1"
+                max="25"
                 required
               />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                Equal starting allowance allocated to all franchise teams ($100,000 default).
+                Min squad size limit
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div className="form-group">
-                <label className="form-label">Min Roster Size</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={minRoster}
-                  onChange={(e) => setMinRoster(e.target.value)}
-                  min="1"
-                  max="25"
-                  required
-                />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                  Min squad size limit
-                </span>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Max Roster Size</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={maxRoster}
-                  onChange={(e) => setMaxRoster(e.target.value)}
-                  min="1"
-                  max="30"
-                  required
-                />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                  Max squad cap limit
-                </span>
-              </div>
-            </div>
-
-            <button type="submit" className="btn btn-gold" style={{ width: '100%', marginTop: '14px' }}>
-              Save Rule Configuration
-            </button>
-          </form>
-        </div>
-
-        {/* Live Guardrail Engine Impact Panel */}
-        <div className="glass-panel" style={{ padding: '28px', background: 'var(--bg-card-solid)' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldAlert color="var(--accent-green)" /> Budget Guardrail Calculation Preview
-          </h3>
-
-          <div style={{ fontSize: '0.83rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '16px' }}>
-            The backend mathematical guardrail prevents teams from making high bids that would render them unable to complete their minimum roster requirement.
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>ALLOWED TOTAL BUDGET PER TEAM</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>
-                ${Number(totalBudget).toLocaleString()}
-              </div>
-            </div>
-
-            <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>MINIMUM REQUIRED SQUAD SIZE</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-cyan)' }}>
-                {minRoster} Players Needed
-              </div>
-            </div>
-
-            <div style={{ background: 'rgba(0, 230, 153, 0.1)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(0, 230, 153, 0.3)', fontSize: '0.78rem', color: 'var(--accent-green)' }}>
-              <CheckCircle2 size={14} style={{ display: 'inline', marginRight: '4px' }} />
-              <strong>Guardrail Formula:</strong> Reserve = (Min Roster - Roster Count - 1) &times; Lowest Base Price. Bids exceeding Max Bid = (Remaining Budget - Reserve) will be automatically blocked during live auction.
+            <div className="form-group">
+              <label className="form-label">Max Roster Size</label>
+              <input
+                type="number"
+                className="form-control"
+                value={maxRoster}
+                onChange={(e) => setMaxRoster(e.target.value)}
+                min="1"
+                max="30"
+                required
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                Max squad cap limit
+              </span>
             </div>
           </div>
-        </div>
 
+          <button type="submit" className="btn btn-gold" style={{ width: '100%', marginTop: '14px' }}>
+            Save Rule Configuration
+          </button>
+        </form>
       </div>
 
     </div>

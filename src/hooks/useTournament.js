@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { api } from '../services/api.js';
 
@@ -13,6 +13,9 @@ export function useTournament() {
   const [leaderboards, setLeaderboards] = useState({ topScorers: [], topAssists: [], cleanSheets: [] });
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState(null);
+  const socketRef = useRef(null);
+  const matchesRef = useRef(matches);
+  matchesRef.current = matches;
 
   // Fetch all fixtures from backend
   const fetchMatches = useCallback(async () => {
@@ -20,7 +23,9 @@ export function useTournament() {
       setLoading(true);
       const res = await fetch('http://localhost:5000/api/tournament/matches');
       const data = await res.json();
-      if (data.success) setMatches(data.matches);
+      if (data.success) {
+        setMatches(data.matches);
+      }
     } catch (e) {
       setError('Failed to load fixtures');
     } finally {
@@ -57,6 +62,14 @@ export function useTournament() {
 
     // Subscribe to live score updates via WebSocket
     const socket = io(SOCKET_URL, { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      // Join rooms for all known matches
+      matchesRef.current.forEach(m => {
+        socket.emit('join_match_room', m.id);
+      });
+    });
 
     socket.on('match_score_update', (update) => {
       // Patch the updated match in local state without a full re-fetch
@@ -73,6 +86,15 @@ export function useTournament() {
 
     return () => socket.disconnect();
   }, [fetchMatches, fetchStandings, fetchLeaderboards]);
+
+  // Ensure we join rooms for any new matches added to state
+  useEffect(() => {
+    if (socketRef.current) {
+      matches.forEach(m => {
+        socketRef.current.emit('join_match_room', m.id);
+      });
+    }
+  }, [matches]);
 
   return {
     matches,
