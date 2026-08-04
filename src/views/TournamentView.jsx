@@ -21,10 +21,26 @@ import {
   Zap,
   CheckCircle2,
   AlertTriangle,
-  FolderPlus
+  FolderPlus,
+  RefreshCw
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api';
+
+const ALL_EVENT_LABELS = [
+  { id: 'GOAL', label: '⚽ Goal' },
+  { id: 'ASSIST', label: '👟 Goal Assist' },
+  { id: 'YELLOW_CARD', label: '🟨 Yellow Card' },
+  { id: 'RED_CARD', label: '🟥 Red Card' },
+  { id: 'GOAL_SAVED', label: '🧤 Goal Saved / Save' },
+  { id: 'SHOT_ON_TARGET', label: '🎯 Shot on Target' },
+  { id: 'SHOT_OFF_TARGET', label: '⚽ Shot Off Target' },
+  { id: 'TACKLE', label: '⚔️ Successful Tackle' },
+  { id: 'INTERCEPTION', label: '🛑 Interception' },
+  { id: 'SUBSTITUTION', label: '🔄 Substitution' },
+  { id: 'INJURY', label: '🚑 Injury' },
+  { id: 'FOUL', label: '⚠️ Foul Committed' }
+];
 
 export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOnly = false }) => {
   const { 
@@ -57,16 +73,16 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
   );
 
   // Modals state
-  const [selectedFixture, setSelectedFixture] = useState(null); // For event/score logger
-  const [deletingMatch, setDeletingMatch] = useState(null);     // For delete confirm
+  const [selectedFixture, setSelectedFixture] = useState(null);
+  const [deletingMatch, setDeletingMatch] = useState(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
 
-  // Add Match Modal Form state
+  // Add Match Modal Form state (supports 2-legged dual dates)
   const [addHomeTeamId, setAddHomeTeamId] = useState(teams[0]?.id || '');
   const [addAwayTeamId, setAddAwayTeamId] = useState(teams[1]?.id || '');
-  const [addDate, setAddDate] = useState('2026-08-25T16:00');
-  const [addReturnDate, setAddReturnDate] = useState('2026-09-01T16:00');
+  const [addLeg1Date, setAddLeg1Date] = useState('2026-08-25T16:00');
+  const [addLeg2Date, setAddLeg2Date] = useState('2026-09-01T16:00');
   const [addIsLegged, setAddIsLegged] = useState(false);
   const [addGroupId, setAddGroupId] = useState('');
 
@@ -76,6 +92,9 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
   const [eventAssistId, setEventAssistId] = useState('');
   const [eventMinute, setEventMinute] = useState(45);
   const [eventSubmitting, setEventSubmitting] = useState(false);
+
+  // Configurable Event Types loaded from settings
+  const [enabledEventTypes, setEnabledEventTypes] = useState(['GOAL', 'ASSIST', 'YELLOW_CARD', 'RED_CARD', 'GOAL_SAVED', 'TACKLE', 'SHOT_ON_TARGET', 'SUBSTITUTION']);
 
   // Group Management Form state
   const [newGroupName, setNewGroupName] = useState('');
@@ -89,6 +108,18 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
   const [playerTeamFilter, setPlayerTeamFilter] = useState('ALL');
   const [playerSortKey, setPlayerSortKey] = useState('goals');
 
+  // Fetch enabled event types from backend settings API
+  useEffect(() => {
+    fetch(`${API_BASE}/tournament/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.enabledEvents)) {
+          setEnabledEventTypes(data.enabledEvents);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Data helpers
   const fixtures = backendMatches.length > 0 ? backendMatches : [];
   const standings = backendStandings.length > 0 ? backendStandings : [];
@@ -98,6 +129,24 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
   const cleanSheetsList = leaderboards.cleanSheets || [];
   const topSavers = leaderboards.topSavers || [];
   const allStatsMap = leaderboards.allPlayerStatsMap || {};
+
+  // Check for teams unassigned to any group (Strict 1-to-1 partition check)
+  const assignedTeamIds = useMemo(() => {
+    const set = new Set();
+    groups.forEach(g => {
+      if (Array.isArray(g.teamIds)) g.teamIds.forEach(id => set.add(id));
+    });
+    return set;
+  }, [groups]);
+
+  const unassignedTeams = useMemo(() => {
+    return teams.filter(t => !assignedTeamIds.has(t.id));
+  }, [teams, assignedTeamIds]);
+
+  // Available options for Event Logger select dropdown
+  const availableEventOptions = useMemo(() => {
+    return ALL_EVENT_LABELS.filter(ev => enabledEventTypes.includes(ev.id));
+  }, [enabledEventTypes]);
 
   // Refetch standings when group filter changes
   useEffect(() => {
@@ -119,10 +168,9 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
     });
   }, [fixtures, teams, matchSearch, matchStatusFilter, selectedGroupFilter]);
 
-  // Leader team (1st place)
   const leagueLeader = standings[0];
 
-  // Combined computed player statistics using allStatsMap dictionary from backend
+  // Combined computed player statistics
   const combinedPlayerStats = useMemo(() => {
     return players.map(p => {
       const statObj = allStatsMap[p.id] || {};
@@ -177,14 +225,15 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
           teamBId: addAwayTeamId,
           teamAName: teams.find(t => t.id === addHomeTeamId)?.name || '',
           teamBName: teams.find(t => t.id === addAwayTeamId)?.name || '',
-          scheduledTime: addDate,
+          scheduledTimeLeg1: addLeg1Date,
+          scheduledTimeLeg2: addIsLegged ? addLeg2Date : null,
           isTwoLegged: addIsLegged,
           groupId: addGroupId || null
         })
       });
       const data = await res.json();
       if (data.success) {
-        addNotification('success', 'Match Added', addIsLegged ? 'Home and Away fixtures created.' : 'Match scheduled successfully.');
+        addNotification('success', 'Match Added', addIsLegged ? 'Leg 1 & Leg 2 return fixtures scheduled.' : 'Match scheduled successfully.');
         refetch();
         setShowAddMatchModal(false);
       } else {
@@ -309,7 +358,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
     }
   };
 
-  // ── Group Management Handlers ─────────────────────────────────────────────
+  // ── Group Management Handlers (Enforces Strict 1-to-1 Partition) ───────────
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
@@ -331,7 +380,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
       });
       const data = await res.json();
       if (data.success) {
-        addNotification('success', 'Group Created', `Group "${newGroupName}" added successfully.`);
+        addNotification('success', 'Group Created', `Group "${newGroupName}" created. Teams partitioned strictly.`);
         setNewGroupName('');
         setSelectedGroupTeamIds([]);
         refetch();
@@ -361,6 +410,43 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
       }
     } catch (err) {
       addNotification('error', 'Backend Error', err.message);
+    }
+  };
+
+  // Auto-Partition button logic (divides unassigned teams evenly across groups)
+  const handleAutoBalanceGroups = async () => {
+    if (groups.length === 0) {
+      addNotification('error', 'No Groups', 'Please create at least one group before auto-partitioning.');
+      return;
+    }
+    if (unassignedTeams.length === 0) {
+      addNotification('info', 'All Assigned', 'All teams are already assigned to a group.');
+      return;
+    }
+
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    // Distribute unassigned teams across existing groups round-robin
+    const groupDistributions = Object.fromEntries(groups.map(g => [g.id, [...(g.teamIds || [])]]));
+    unassignedTeams.forEach((t, idx) => {
+      const targetGroup = groups[idx % groups.length];
+      groupDistributions[targetGroup.id].push(t.id);
+    });
+
+    try {
+      for (const group of groups) {
+        await fetch(`${API_BASE}/tournament/groups/${group.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ teamIds: groupDistributions[group.id] })
+        });
+      }
+      addNotification('success', 'Teams Partitioned', 'All unassigned teams evenly partitioned into groups.');
+      refetch();
+    } catch (err) {
+      addNotification('error', 'Auto-Partition Error', err.message);
     }
   };
 
@@ -397,9 +483,12 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
               <button
                 onClick={() => setShowGroupModal(true)}
                 className="btn btn-secondary"
-                style={{ padding: '12px 20px', fontSize: '0.9rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                style={{ padding: '12px 20px', fontSize: '0.9rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}
               >
                 <FolderPlus size={18} /> Manage Groups
+                {unassignedTeams.length > 0 && (
+                  <span style={{ position: 'absolute', top: '-6px', right: '-6px', width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444' }} />
+                )}
               </button>
               <button
                 onClick={() => setShowAddMatchModal(true)}
@@ -485,7 +574,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
         )}
       </div>
 
-      {/* Group Filter Bar (Visible in Matches & Standings) */}
+      {/* Group Filter Bar */}
       {(rightTab === 'MATCHES' || rightTab === 'STANDINGS') && groups.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: 'rgba(15, 23, 42, 0.6)', padding: '10px 18px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginRight: '6px' }}>Group Stage Filter:</span>
@@ -636,7 +725,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                           </div>
                         )}
 
-                        {/* Admin Controls: Edit & Delete buttons */}
+                        {/* Admin Controls */}
                         {canEdit && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                             <button onClick={() => setSelectedFixture(fix)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -666,7 +755,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           {fix.events.filter(e => e.teamId === fix.teamAId || e.teamId === homeTeam?.id).map((ev, i) => {
                             const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
-                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : '🧤';
+                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : ev.type === 'GOAL_SAVED' ? '🧤' : '⚡';
                             return (
                               <div key={i} style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span>{icon}</span>
@@ -680,7 +769,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right', alignItems: 'flex-end' }}>
                           {fix.events.filter(e => e.teamId === fix.teamBId || e.teamId === awayTeam?.id).map((ev, i) => {
                             const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
-                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : '🧤';
+                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : ev.type === 'GOAL_SAVED' ? '🧤' : '⚡';
                             return (
                               <div key={i} style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ color: '#64748b' }}>({ev.minute}')</span>
@@ -1030,11 +1119,12 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                 ) : (
                   selectedFixture.events.map(ev => {
                     const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
-                    const icon = ev.type === 'GOAL' ? '⚽ Goal' : ev.type === 'YELLOW_CARD' ? '🟨 Yellow Card' : ev.type === 'RED_CARD' ? '🟥 Red Card' : '🧤 Save';
+                    const labelObj = ALL_EVENT_LABELS.find(l => l.id === ev.type);
+                    const iconLabel = labelObj?.label || ev.type;
                     return (
                       <div key={ev.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '8px', fontSize: '0.83rem' }}>
                         <span>
-                          <strong style={{ color: '#ffb703' }}>{ev.minute}'</strong> — {icon}: <strong>{plyName}</strong>
+                          <strong style={{ color: '#ffb703' }}>{ev.minute}'</strong> — {iconLabel}: <strong>{plyName}</strong>
                           {ev.assistPlayer && <span style={{ color: '#94a3b8' }}> (Assist: {ev.assistPlayer.jerseyName || ev.assistPlayer.user?.name})</span>}
                         </span>
                         <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 6px' }}>
@@ -1047,7 +1137,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
               </div>
             </div>
 
-            {/* Log New Event Form */}
+            {/* Log New Event Form — Dynamically filtered by Tournament Settings */}
             <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(30, 41, 59, 0.4)', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffb703' }}>Record New Event</div>
               
@@ -1055,10 +1145,9 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                 <div>
                   <label className="form-label" style={{ fontSize: '0.78rem' }}>Event Type</label>
                   <select className="form-control" value={eventType} onChange={(e) => setEventType(e.target.value)}>
-                    <option value="GOAL">⚽ Goal</option>
-                    <option value="YELLOW_CARD">🟨 Yellow Card</option>
-                    <option value="RED_CARD">🟥 Red Card</option>
-                    <option value="GOAL_SAVED">🧤 Goal Saved / Save</option>
+                    {availableEventOptions.map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -1130,10 +1219,10 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
         </div>
       )}
 
-      {/* ADD MATCH MODAL */}
+      {/* ADD MATCH MODAL — Supports 2-Legged Dual Datetime Pickers */}
       {showAddMatchModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '520px', borderRadius: '20px' }}>
+          <div className="modal-content" style={{ maxWidth: '540px', borderRadius: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Calendar size={20} color="#ffb703" /> Schedule New Match
@@ -1203,19 +1292,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                 </div>
               </div>
 
-              {/* Date / Time */}
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label"><Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />Date & Time</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={addDate}
-                  onChange={(e) => setAddDate(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Match Format */}
+              {/* Match Format Selector */}
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">Match Format</label>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -1238,9 +1315,40 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                 </div>
               </div>
 
+              {/* Date Pickers (Dual dates when 2-Legged is enabled) */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">
+                  <Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                  {addIsLegged ? 'Leg 1 Date & Time (Home Leg)' : 'Date & Time'}
+                </label>
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={addLeg1Date}
+                  onChange={(e) => setAddLeg1Date(e.target.value)}
+                  required
+                />
+              </div>
+
+              {addIsLegged && (
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ color: '#00d9ff' }}>
+                    <Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                    Leg 2 Date & Time (Return Leg)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="form-control"
+                    value={addLeg2Date}
+                    onChange={(e) => setAddLeg2Date(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button type="submit" className="btn btn-gold" style={{ flex: 1 }}>
-                  <Plus size={16} /> Add Match
+                  <Plus size={16} /> {addIsLegged ? 'Add 2-Legged Fixtures' : 'Add Single Match'}
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddMatchModal(false)}>
                   Cancel
@@ -1251,11 +1359,11 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
         </div>
       )}
 
-      {/* GROUP MANAGEMENT MODAL */}
+      {/* GROUP MANAGEMENT MODAL — Strict 1-to-1 Partition Rule Enforcement */}
       {showGroupModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '520px', borderRadius: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div className="modal-content" style={{ maxWidth: '560px', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <FolderPlus size={20} color="#00e699" /> Manage Tournament Groups
               </h3>
@@ -1264,12 +1372,28 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
               </button>
             </div>
 
+            {/* Strict Single-Group Partition Warning Badge */}
+            {unassignedTeams.length > 0 ? (
+              <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '12px 16px', borderRadius: '12px', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ fontSize: '0.82rem', color: '#f87171', fontWeight: 700 }}>
+                  ⚠️ Rule: Every team must belong to exactly 1 group. ({unassignedTeams.length} unassigned team(s))
+                </div>
+                <button onClick={handleAutoBalanceGroups} className="btn" style={{ padding: '5px 12px', fontSize: '0.75rem', background: '#ef4444', color: '#fff' }}>
+                  <RefreshCw size={12} style={{ display: 'inline', marginRight: '4px' }} /> Auto-Partition
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: 'rgba(0, 230, 153, 0.1)', border: '1px solid rgba(0, 230, 153, 0.3)', padding: '10px 14px', borderRadius: '12px', marginBottom: '18px', fontSize: '0.82rem', color: '#00e699', fontWeight: 700 }}>
+                ✓ Strict Partition Satisfied: All {teams.length} teams belong to exactly one group.
+              </div>
+            )}
+
             {/* Existing Groups List */}
             <div style={{ marginBottom: '20px' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', marginBottom: '8px' }}>Existing Groups</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
                 {groups.length === 0 ? (
-                  <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', padding: '12px' }}>No groups created yet.</div>
+                  <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', padding: '12px' }}>No groups created yet. Create a group below.</div>
                 ) : (
                   groups.map(g => (
                     <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(15,23,42,0.6)', borderRadius: '10px', border: `1px solid ${g.color || '#3b82f6'}44` }}>
@@ -1305,26 +1429,32 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Assign Teams to Group</label>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Assign Teams to Group (Enforces Strict 1-to-1 Partition)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
-                  {teams.map(t => (
-                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedGroupTeamIds.includes(t.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedGroupTeamIds(prev => [...prev, t.id]);
-                          else setSelectedGroupTeamIds(prev => prev.filter(id => id !== t.id));
-                        }}
-                      />
-                      {t.name}
-                    </label>
-                  ))}
+                  {teams.map(t => {
+                    const currentGroup = groups.find(g => Array.isArray(g.teamIds) && g.teamIds.includes(t.id));
+                    return (
+                      <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedGroupTeamIds.includes(t.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedGroupTeamIds(prev => [...prev, t.id]);
+                            else setSelectedGroupTeamIds(prev => prev.filter(id => id !== t.id));
+                          }}
+                        />
+                        <span>{t.name}</span>
+                        {currentGroup && (
+                          <span style={{ fontSize: '0.7rem', color: currentGroup.color || '#3b82f6' }}>({currentGroup.name})</span>
+                        )}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
               <button type="submit" className="btn btn-gold" style={{ padding: '10px', fontSize: '0.85rem' }}>
-                <Plus size={16} /> Create Group
+                <Plus size={16} /> Create Group & Partition Teams
               </button>
             </form>
           </div>
