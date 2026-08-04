@@ -13,6 +13,19 @@ const INITIAL_SYSTEM_STATE = {
   
   academicSessions: ['2024/2025', '2025/2026', '2026/2027'],
   
+  positions: [
+    { code: 'GK', name: 'Goalkeeper' },
+    { code: 'CB', name: 'Center Back' },
+    { code: 'LB', name: 'Left Back' },
+    { code: 'RB', name: 'Right Back' },
+    { code: 'CDM', name: 'Defensive Midfielder' },
+    { code: 'CM', name: 'Central Midfielder' },
+    { code: 'CAM', name: 'Attacking Midfielder' },
+    { code: 'LW', name: 'Left Wing' },
+    { code: 'RW', name: 'Right Wing' },
+    { code: 'ST', name: 'Striker' }
+  ],
+  
   // Player Categories with Base Prices
   categories: [
     { id: 'cat-icon', name: 'Icon', basePrice: 0, color: '#ef4444' },
@@ -419,12 +432,10 @@ export const SystemProvider = ({ children }) => {
   };
 
   // --- DYNAMIC BIDDING MATH ENGINE ---
-  // Returns calculated exact minimum raise based on current bid and total budget
   const calculateMinimumRaise = (currentBidAmount) => {
     const totalBudget = systemState.totalBudget;
     const bidPct = (currentBidAmount / totalBudget) * 100;
     
-    // Find matching tier
     const matchingTier = systemState.raiseTiers.find(
       t => bidPct >= t.minBudgetPct && bidPct < t.maxBudgetPct
     ) || systemState.raiseTiers[systemState.raiseTiers.length - 1];
@@ -432,6 +443,38 @@ export const SystemProvider = ({ children }) => {
     const raisePct = matchingTier ? matchingTier.raisePct : 0.5;
     const calculatedRaise = Math.max(100, Math.round((totalBudget * (raisePct / 100)) / 100) * 100);
     return calculatedRaise;
+  };
+
+  const addAcademicSession = (session) => {
+    setSystemState(prev => ({
+      ...prev,
+      academicSessions: [...prev.academicSessions, session]
+    }));
+    addNotification('success', 'Session Added', `Academic session "${session}" added.`);
+  };
+
+  const removeAcademicSession = (session) => {
+    setSystemState(prev => ({
+      ...prev,
+      academicSessions: prev.academicSessions.filter(s => s !== session)
+    }));
+    addNotification('info', 'Session Removed', `Academic session removed.`);
+  };
+
+  const addPosition = (position) => {
+    setSystemState(prev => ({
+      ...prev,
+      positions: [...prev.positions, position]
+    }));
+    addNotification('success', 'Position Added', `Position "${position.name}" added.`);
+  };
+
+  const removePosition = (code) => {
+    setSystemState(prev => ({
+      ...prev,
+      positions: prev.positions.filter(p => p.code !== code)
+    }));
+    addNotification('info', 'Position Removed', `Position removed.`);
   };
 
   // --- BUDGET GUARDRAIL MATHEMATICAL VALIDATION ---
@@ -991,7 +1034,11 @@ export const SystemProvider = ({ children }) => {
       passActivePlayer,
       calculatePointsTable,
       calculatePlayerLeaderboards,
-      executeNukeProtocol
+      executeNukeProtocol,
+      addAcademicSession,
+      removeAcademicSession,
+      addPosition,
+      removePosition
     }}>
       {children}
     </SystemContext.Provider>

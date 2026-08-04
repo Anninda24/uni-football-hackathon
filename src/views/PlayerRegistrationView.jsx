@@ -2,28 +2,18 @@ import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
 import { UserPlus, Image as ImageIcon, ShieldCheck, CheckCircle2, AlertCircle, Edit3, Trash2, UploadCloud } from 'lucide-react';
 
-const POSITIONS_LIST = [
-  { code: 'GK', name: 'Goalkeeper' },
-  { code: 'CB', name: 'Center Back' },
-  { code: 'LB', name: 'Left Back' },
-  { code: 'RB', name: 'Right Back' },
-  { code: 'CDM', name: 'Defensive Midfielder' },
-  { code: 'CM', name: 'Central Midfielder' },
-  { code: 'CAM', name: 'Attacking Midfielder' },
-  { code: 'LW', name: 'Left Wing' },
-  { code: 'RW', name: 'Right Wing' },
-  { code: 'ST', name: 'Striker' }
-];
-
 export const PlayerRegistrationView = () => {
   const { systemState, players, setPlayers, addNotification } = useSystem();
 
   const [formData, setFormData] = useState({
     name: '',
     studentId: '',
-    session: systemState.academicSessions[0] || '2025/2026',
+    email: '',
+    password: '',
+    session: systemState.academicSessions[0] || '',
     jerseyName: '',
-    primaryPosition: 'ST',
+    jerseyNumber: '',
+    primaryPosition: systemState.positions[0]?.code || '',
     secondaryPositions: [],
     imageUrl: '',
     categoryId: systemState.categories[0]?.id || 'cat-plat'
@@ -61,7 +51,6 @@ export const PlayerRegistrationView = () => {
     if (!file) return;
 
     setCloudUploadProgress(true);
-    // Simulate Cloudinary / Cloud API Upload delay
     setTimeout(() => {
       const simulatedCloudUrl = URL.createObjectURL(file);
       setImagePreview(simulatedCloudUrl);
@@ -82,7 +71,7 @@ export const PlayerRegistrationView = () => {
       return;
     }
 
-    if (!formData.name || !formData.studentId || !formData.jerseyName) {
+    if (!formData.name || !formData.studentId || !formData.email || !formData.password || !formData.jerseyName || !formData.jerseyNumber || !formData.primaryPosition) {
       addNotification('error', 'Missing Fields', 'Please complete all required fields.');
       return;
     }
@@ -91,7 +80,6 @@ export const PlayerRegistrationView = () => {
     const defaultImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
     if (editingPlayerId) {
-      // Update Existing Registration
       setPlayers(prev => prev.map(p => p.id === editingPlayerId ? {
         ...p,
         ...formData,
@@ -101,7 +89,6 @@ export const PlayerRegistrationView = () => {
       setEditingPlayerId(null);
       addNotification('success', 'Profile Updated', 'Player registration updated successfully.');
     } else {
-      // New Registration
       const newPlayer = {
         id: 'ply-' + Date.now(),
         ...formData,
@@ -109,7 +96,7 @@ export const PlayerRegistrationView = () => {
         cloudPublicId: 'cld_ply_' + Date.now(),
         categoryId: category.id,
         basePrice: category ? category.basePrice : 10000,
-        status: 'APPROVED', // Default approved for smooth demo
+        status: 'APPROVED',
         soldToTeamId: null,
         soldAmount: 0
       };
@@ -117,13 +104,15 @@ export const PlayerRegistrationView = () => {
       addNotification('success', 'Registration Submitted', 'Player registration profile successfully added to auction pool.');
     }
 
-    // Reset Form
     setFormData({
       name: '',
       studentId: '',
-      session: systemState.academicSessions[0] || '2025/2026',
+      email: '',
+      password: '',
+      session: systemState.academicSessions[0] || '',
       jerseyName: '',
-      primaryPosition: 'ST',
+      jerseyNumber: '',
+      primaryPosition: systemState.positions[0]?.code || '',
       secondaryPositions: [],
       imageUrl: '',
       categoryId: systemState.categories[0]?.id || 'cat-plat'
@@ -135,8 +124,11 @@ export const PlayerRegistrationView = () => {
     setFormData({
       name: player.name,
       studentId: player.studentId,
+      email: player.email || '',
+      password: player.password || '',
       session: player.session,
       jerseyName: player.jerseyName,
+      jerseyNumber: player.jerseyNumber || '',
       primaryPosition: player.primaryPosition,
       secondaryPositions: player.secondaryPositions || [],
       imageUrl: player.imageUrl,
@@ -151,9 +143,12 @@ export const PlayerRegistrationView = () => {
     setFormData({
       name: '',
       studentId: '',
-      session: systemState.academicSessions[0] || '2025/2026',
+      email: '',
+      password: '',
+      session: systemState.academicSessions[0] || '',
       jerseyName: '',
-      primaryPosition: 'ST',
+      jerseyNumber: '',
+      primaryPosition: systemState.positions[0]?.code || '',
       secondaryPositions: [],
       imageUrl: '',
       categoryId: systemState.categories[0]?.id || 'cat-plat'
@@ -172,6 +167,8 @@ export const PlayerRegistrationView = () => {
   };
 
   const isLocked = systemState.currentPhase === 'THE_AUCTION' || systemState.currentPhase === 'TOURNAMENT';
+
+  const positions = systemState.positions || [];
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '24px' }}>
@@ -218,18 +215,33 @@ export const PlayerRegistrationView = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div className="form-group">
-              <label className="form-label">Student ID *</label>
+              <label className="form-label">Email *</label>
               <input
-                type="text"
+                type="email"
                 className="form-control"
-                placeholder="e.g. ST-2025-992"
-                value={formData.studentId}
-                onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
+                placeholder="player@university.edu"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 disabled={isLocked}
                 required
               />
             </div>
 
+            <div className="form-group">
+              <label className="form-label">Password *</label>
+              <input
+                type="password"
+                className="form-control"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                disabled={isLocked}
+                required
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             <div className="form-group">
               <label className="form-label">Academic Session *</label>
               <select
@@ -242,6 +254,19 @@ export const PlayerRegistrationView = () => {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Jersey Number *</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. 10"
+                value={formData.jerseyNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, jerseyNumber: e.target.value }))}
+                disabled={isLocked}
+                required
+              />
             </div>
           </div>
 
@@ -280,7 +305,7 @@ export const PlayerRegistrationView = () => {
           <div className="form-group" style={{ marginTop: '10px' }}>
             <label className="form-label">Primary Position * (Select Exactly One)</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {POSITIONS_LIST.map(pos => (
+              {positions.map(pos => (
                 <button
                   type="button"
                   key={pos.code}
@@ -306,7 +331,7 @@ export const PlayerRegistrationView = () => {
           <div className="form-group">
             <label className="form-label">Secondary Positions (Optional)</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {POSITIONS_LIST.map(pos => {
+              {positions.map(pos => {
                 const isPrimary = formData.primaryPosition === pos.code;
                 const isSelected = formData.secondaryPositions.includes(pos.code);
                 return (
@@ -436,9 +461,11 @@ export const PlayerRegistrationView = () => {
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
                     <span>ID: <strong>{player.studentId}</strong></span>
+                    <span>Email: <strong>{player.email}</strong></span>
                     <span>Session: <strong>{player.session}</strong></span>
+                    <span>Jersey: <strong>#{player.jerseyNumber} {player.jerseyName}</strong></span>
                     <span>Base: <strong>${player.basePrice.toLocaleString()}</strong></span>
                   </div>
 

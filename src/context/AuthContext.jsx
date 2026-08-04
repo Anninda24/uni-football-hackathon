@@ -9,7 +9,15 @@ export const PRESET_ACCOUNTS = {
     name: 'Super Admin',
     email: 'admin@football.com',
     role: 'SUPER_ADMIN',
-    avatar: '⚡',
+    avatar: '👑',
+    teamId: null
+  },
+  SUB_ADMIN: {
+    id: 'usr-subadmin',
+    name: 'Sub Admin',
+    email: 'subadmin@football.com',
+    role: 'SUB_ADMIN',
+    avatar: '🛡️',
     teamId: null
   },
   PODIUM_ADMIN: {
@@ -18,6 +26,14 @@ export const PRESET_ACCOUNTS = {
     email: 'podium@football.com',
     role: 'PODIUM_ADMIN',
     avatar: '🎙️',
+    teamId: null
+  },
+  ICON_PLAYER: {
+    id: 'usr-icon-player',
+    name: 'Icon Player',
+    email: 'icon@football.com',
+    role: 'ICON_PLAYER',
+    avatar: '⭐',
     teamId: null
   },
   TEAM_MANAGER: {
@@ -78,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Default target role based on username keywords if specified
-    const targetRole = preferredRole || (query.includes('admin') ? 'SUPER_ADMIN' : query.includes('podium') ? 'PODIUM_ADMIN' : query.includes('mgr') || query.includes('manager') || query.includes('alex') ? 'TEAM_MANAGER' : 'SUPER_ADMIN');
+    const targetRole = preferredRole || (query.includes('admin') ? 'SUPER_ADMIN' : query.includes('subadmin') ? 'SUB_ADMIN' : query.includes('podium') ? 'PODIUM_ADMIN' : query.includes('icon') ? 'ICON_PLAYER' : query.includes('mgr') || query.includes('manager') || query.includes('alex') ? 'TEAM_MANAGER' : 'SUPER_ADMIN');
 
     const newUser = {
       id: `usr-${Date.now()}`,

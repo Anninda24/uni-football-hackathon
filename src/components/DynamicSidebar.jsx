@@ -18,7 +18,10 @@ import {
   LogIn,
   LogOut,
   Crown,
-  Lock
+  Lock,
+  TrendingUp,
+  Newspaper,
+  Shield
 } from 'lucide-react';
 
 export function DynamicSidebar({ activeRoute, setActiveRoute }) {
@@ -37,6 +40,23 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
           { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Player Pool and Category', icon: Users },
           { id: 'SUPER_ADMIN_TEAM_MANAGEMENT', label: 'Team Management', icon: Trophy },
           { id: 'SUPER_ADMIN_SETTINGS', label: 'Settings', icon: Settings }
+        ];
+
+      case 'SUB_ADMIN':
+        return [
+          { id: 'SUPER_ADMIN_DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'SUPER_ADMIN_AUCTION_RULES', label: 'Auction Rules', icon: Gavel },
+          { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Player Pool and Category', icon: Users },
+          { id: 'SUPER_ADMIN_TEAM_MANAGEMENT', label: 'Team Management', icon: Trophy }
+        ];
+
+      case 'ICON_PLAYER':
+        return [
+          { id: 'CAPTAIN_DASHBOARD', label: 'Captain Dashboard', icon: Crown },
+          { id: 'MY_TEAM', label: 'My Team Info', icon: Users },
+          { id: 'MATCH_CENTER', label: 'Match Center', icon: Calendar },
+          { id: 'TEAM_PERFORMANCE', label: 'Team Performance Stats', icon: TrendingUp },
+          { id: 'CAPTAIN_ANNOUNCEMENTS', label: 'Captain Announcements', icon: Newspaper }
         ];
 
       case 'PLAYER':

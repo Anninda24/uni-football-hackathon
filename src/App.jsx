@@ -33,7 +33,11 @@ import { PlayerRegistrationView } from './views/PlayerRegistrationView';
 import { LoginRegisterView } from './views/LoginRegisterView';
 import { AuctionRulesTabbedView } from './views/AuctionRulesTabbedView';
 import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
+import { MatchCenterView } from './views/MatchCenterView';
+import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
+import { CaptainAnnouncementsView } from './views/CaptainAnnouncementsView';
 import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
+import { SettingsTabbedView } from './views/SettingsTabbedView';
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -55,6 +59,10 @@ function AppContent() {
     switch (role) {
       case 'SUPER_ADMIN':
         return 'SUPER_ADMIN_DASHBOARD';
+      case 'SUB_ADMIN':
+        return 'SUPER_ADMIN_DASHBOARD';
+      case 'ICON_PLAYER':
+        return 'CAPTAIN_DASHBOARD';
       case 'PLAYER':
         return 'PLAYER_MY_PROFILE';
       case 'TEAM_MANAGER':
@@ -113,7 +121,7 @@ function AppContent() {
       case 'SUPER_ADMIN_SETTINGS':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <DangerZoneView onOpenNukeModal={() => setShowNukeModal(true)} />
+            <SettingsTabbedView onOpenNukeModal={() => setShowNukeModal(true)} />
           </ProtectedRoute>
         );
 
@@ -187,6 +195,42 @@ function AppContent() {
         return (
           <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
             <LiveOperationsView onNavigateToTab={() => {}} />
+          </ProtectedRoute>
+        );
+
+      // --- ICON PLAYER ROUTES ---
+      case 'CAPTAIN_DASHBOARD':
+        return (
+          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <CaptainDashboardView />
+          </ProtectedRoute>
+        );
+
+      case 'MY_TEAM':
+        return (
+          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      case 'MATCH_CENTER':
+        return (
+          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MatchCenterView />
+          </ProtectedRoute>
+        );
+
+      case 'TEAM_PERFORMANCE':
+        return (
+          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <TeamPerformanceStatsView />
+          </ProtectedRoute>
+        );
+
+      case 'CAPTAIN_ANNOUNCEMENTS':
+        return (
+          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <CaptainAnnouncementsView />
           </ProtectedRoute>
         );
 

@@ -1,23 +1,39 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSystemPhase } from '../context/SystemPhaseContext';
+import { useSystem } from '../context/SystemContext';
 import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
 
 export function LoginRegisterView({ onLoginSuccess }) {
   const { login, PRESET_ACCOUNTS } = useAuth();
   const { currentPhase } = useSystemPhase();
-  const [activeTab, setActiveTab] = useState('LOGIN'); // 'LOGIN' or 'REGISTER'
+  const { systemState } = useSystem();
+  const [activeTab, setActiveTab] = useState('LOGIN');
 
-  // Login form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // Registration form state
   const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
   const [regStudentId, setRegStudentId] = useState('');
-  const [regPosition, setRegPosition] = useState('ST');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regSession, setRegSession] = useState(systemState.academicSessions[0] || '');
+  const [regJerseyName, setRegJerseyName] = useState('');
+  const [regJerseyNumber, setRegJerseyNumber] = useState('');
+  const [regPrimaryPosition, setRegPrimaryPosition] = useState(systemState.positions[0]?.code || '');
+  const [regSecondaryPositions, setRegSecondaryPositions] = useState([]);
   const [regSuccess, setRegSuccess] = useState(false);
+
+  const positions = systemState.positions || [];
+  const sessions = systemState.academicSessions || [];
+
+  const toggleSecondaryPosition = (code) => {
+    if (code === regPrimaryPosition) return;
+    setRegSecondaryPositions(prev => {
+      const exists = prev.includes(code);
+      return exists ? prev.filter(p => p !== code) : [...prev, code];
+    });
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -209,28 +225,28 @@ export function LoginRegisterView({ onLoginSuccess }) {
             </div>
           ) : (
             <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Julian Sterling"
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff'
-                  }}
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Student ID</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Julian Sterling"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Student ID *</label>
                   <input
                     type="text"
                     required
@@ -247,12 +263,55 @@ export function LoginRegisterView({ onLoginSuccess }) {
                     }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>University Email *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="julian@student.edu"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Primary Position</label>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Session *</label>
                   <select
-                    value={regPosition}
-                    onChange={(e) => setRegPosition(e.target.value)}
+                    required
+                    value={regSession}
+                    onChange={(e) => setRegSession(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -262,32 +321,103 @@ export function LoginRegisterView({ onLoginSuccess }) {
                       color: '#fff'
                     }}
                   >
-                    <option value="ST">Striker (ST)</option>
-                    <option value="CAM">Central Attacking Mid (CAM)</option>
-                    <option value="CM">Central Midfield (CM)</option>
-                    <option value="CB">Center Back (CB)</option>
-                    <option value="GK">Goalkeeper (GK)</option>
+                    {sessions.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Primary Position *</label>
+                  <select
+                    required
+                    value={regPrimaryPosition}
+                    onChange={(e) => setRegPrimaryPosition(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  >
+                    {positions.map(pos => (
+                      <option key={pos.code} value={pos.code}>{pos.name} ({pos.code})</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Jersey Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="STERLING"
+                    value={regJerseyName}
+                    onChange={(e) => setRegJerseyName(e.target.value.toUpperCase())}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Jersey Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="10"
+                    value={regJerseyNumber}
+                    onChange={(e) => setRegJerseyNumber(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: '#1e293b',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#fff'
+                    }}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>University Email</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="julian@student.edu"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff'
-                  }}
-                />
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Secondary Positions (Optional)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {positions.map(pos => {
+                    const isPrimary = regPrimaryPosition === pos.code;
+                    const isSelected = regSecondaryPositions.includes(pos.code);
+                    return (
+                      <button
+                        type="button"
+                        key={pos.code}
+                        onClick={() => toggleSecondaryPosition(pos.code)}
+                        disabled={isPrimary}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: isPrimary ? 'not-allowed' : 'pointer',
+                          opacity: isPrimary ? 0.4 : 1,
+                          border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
+                          background: isSelected ? 'rgba(0, 217, 255, 0.2)' : '#1e293b',
+                          color: isSelected ? 'var(--accent-cyan)' : '#94a3b8'
+                        }}
+                      >
+                        + {pos.code}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <button
