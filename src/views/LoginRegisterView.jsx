@@ -5,9 +5,9 @@ import { useSystem } from '../context/SystemContext';
 import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
 
 export function LoginRegisterView({ onLoginSuccess }) {
-  const { login, PRESET_ACCOUNTS } = useAuth();
+  const { login, PRESET_ACCOUNTS, setCurrentUser } = useAuth();
   const { currentPhase } = useSystemPhase();
-  const { systemState } = useSystem();
+  const { systemState, players, setPlayers, addNotification } = useSystem();
   const [activeTab, setActiveTab] = useState('LOGIN');
 
   const [username, setUsername] = useState('');
@@ -54,9 +54,46 @@ export function LoginRegisterView({ onLoginSuccess }) {
 
   const handleRegister = (e) => {
     e.preventDefault();
+
+    if (!regName || !regStudentId || !regEmail || !regPassword || !regSession || !regJerseyName || !regJerseyNumber || !regPrimaryPosition) {
+      addNotification('error', 'Missing Fields', 'Please complete all required fields.');
+      return;
+    }
+
+    const newPlayer = {
+      id: 'ply-' + Date.now(),
+      name: regName,
+      studentId: regStudentId,
+      email: regEmail,
+      password: regPassword,
+      session: regSession,
+      jerseyName: regJerseyName.toUpperCase(),
+      jerseyNumber: regJerseyNumber,
+      primaryPosition: regPrimaryPosition,
+      secondaryPositions: regSecondaryPositions,
+      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+      cloudPublicId: 'cld_ply_' + Date.now(),
+      categoryId: '',
+      basePrice: 0,
+      status: 'APPROVED',
+      soldToTeamId: null,
+      soldAmount: 0
+    };
+
+    setPlayers(prev => [newPlayer, ...prev]);
+    addNotification('success', 'Registration Submitted', 'Your profile has been created. Redirecting...');
+
     setRegSuccess(true);
     setTimeout(() => {
-      login(regEmail || 'newplayer@student.edu', 'pass', 'PLAYER');
+      setCurrentUser({
+        id: newPlayer.id,
+        name: newPlayer.name,
+        email: newPlayer.email,
+        role: 'PLAYER',
+        avatar: '⚽',
+        studentId: newPlayer.studentId,
+        teamId: null
+      });
       if (onLoginSuccess) onLoginSuccess();
     }, 1200);
   };

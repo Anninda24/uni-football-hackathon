@@ -38,6 +38,7 @@ import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
 import { CaptainAnnouncementsView } from './views/CaptainAnnouncementsView';
 import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 import { SettingsTabbedView } from './views/SettingsTabbedView';
+import { PlayerProfileView } from './views/PlayerProfileView';
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -129,7 +130,7 @@ function AppContent() {
       case 'PLAYER_MY_PROFILE':
         return (
           <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerRegistrationView />
+            <PlayerProfileView />
           </ProtectedRoute>
         );
 

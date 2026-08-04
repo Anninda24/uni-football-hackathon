@@ -4,7 +4,7 @@ import { prisma } from '../config/db.js';
 // FIXTURE MANAGEMENT
 // ─────────────────────────────────────────────
 
-// @desc  Create a new fixture.
+// @desc  Create a new fixture
 // @route POST /api/tournament/matches
 export const createMatch = async (req, res) => {
   try {
