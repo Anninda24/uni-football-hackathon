@@ -3,11 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { useSystem } from '../context/SystemContext';
 import { useSystemPhase } from '../context/SystemPhaseContext';
 import { Activity, Radio, Shield, Users, UserCheck, DollarSign, CheckCircle2, AlertTriangle, ArrowRight, RefreshCw, Cpu, Database } from 'lucide-react';
+import { SYSTEM_PHASES } from '../context/SystemPhaseContext';
 
 export const MissionControlView = () => {
   const { currentUser } = useAuth();
-  const { systemState, teams, players, managers } = useSystem();
-  const { setPhase } = useSystemPhase();
+  const { systemState, teams, players, managers, changePhase } = useSystem();
+  const { currentPhaseId, setPhase } = useSystemPhase();
+  const currentPhase = SYSTEM_PHASES[currentPhaseId] || SYSTEM_PHASES.SETUP;
   
   const [pendingPhase, setPendingPhase] = useState(null);
   const [confirmStep, setConfirmStep] = useState(0);
@@ -19,7 +21,7 @@ export const MissionControlView = () => {
   const totalSpentBudget = teams.reduce((acc, t) => acc + t.spent, 0);
 
   const startPhaseTransition = (newPhase) => {
-    if (newPhase === systemState.currentPhase) return;
+    if (newPhase === currentPhaseId) return;
     setPendingPhase(newPhase);
     setConfirmStep(1);
     setTypedConfirm('');
@@ -28,6 +30,7 @@ export const MissionControlView = () => {
   const handleExecuteTransition = () => {
     if (pendingPhase) {
       setPhase(pendingPhase);
+      changePhase(pendingPhase);
       setPendingPhase(null);
       setConfirmStep(0);
       setTypedConfirm('');
@@ -68,7 +71,7 @@ export const MissionControlView = () => {
               <Activity size={16} color="var(--accent-green)" />
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, marginTop: '8px', color: 'var(--accent-green)' }}>
-              {systemState.currentPhase}
+              {currentPhase.label}
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
               State Machine Active
@@ -134,7 +137,7 @@ export const MissionControlView = () => {
             { phase: 'AUCTION', name: 'Phase 3: THE AUCTION', desc: 'Live auction podium bidding stage for team managers & podium admin.', color: 'gold' },
             { phase: 'TOURNAMENT', name: 'Phase 4: TOURNAMENT', desc: 'Fixtures, legged matches, live standings points table & player statistics.', color: 'green' }
           ].map(p => {
-            const isCurrent = systemState.currentPhase === p.phase;
+            const isCurrent = currentPhaseId === p.phase;
             return (
               <div
                 key={p.phase}
@@ -181,7 +184,7 @@ export const MissionControlView = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', color: 'var(--accent-gold)' }}>
               <AlertTriangle size={24} />
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-                Confirm Phase Transition: {systemState.currentPhase} &rarr; {pendingPhase}
+                Confirm Phase Transition: {currentPhaseId} &rarr; {pendingPhase}
               </h3>
             </div>
 

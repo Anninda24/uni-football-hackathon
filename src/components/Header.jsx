@@ -1,29 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useSystemPhase } from '../context/SystemPhaseContext';
-import { Shield, ChevronDown, User, LogOut, LogIn } from 'lucide-react';
+import { Shield, LogOut, LogIn } from 'lucide-react';
 
 export function Header({ activeRoute, setActiveRoute }) {
-  const { currentUser, logout, PRESET_ACCOUNTS, isAuthenticated } = useAuth();
-  const { currentPhase, setPhase } = useSystemPhase();
-  const [showPhaseMenu, setShowPhaseMenu] = useState(false);
-
-  const getRoleBadgeStyle = (role) => {
-    switch (role) {
-      case 'SUPER_ADMIN':
-        return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '#ef4444' };
-      case 'PODIUM_ADMIN':
-        return { bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '#a855f7' };
-      case 'TEAM_MANAGER':
-        return { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '#f59e0b' };
-      case 'PLAYER':
-        return { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '#3b82f6' };
-      default:
-        return { bg: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', border: '#6b7280' };
-    }
-  };
-
-  const roleStyle = getRoleBadgeStyle(currentUser.role);
+  const { currentUser, logout, isAuthenticated } = useAuth();
 
   return (
     <header style={{
@@ -71,34 +51,8 @@ export function Header({ activeRoute, setActiveRoute }) {
         </div>
       </div>
 
-      {/* Global Phase Status & Role Control Tools */}
+      {/* Auth Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
-
-        {/* Current Phase Indicator Badge */}
-        <div style={{
-          padding: '6px 14px',
-          borderRadius: '20px',
-          border: `1px solid ${currentPhase.badgeColor}55`,
-          background: 'rgba(30, 41, 59, 0.7)',
-          color: '#f8fafc',
-          fontSize: '0.82rem',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span style={{
-            fontSize: '0.68rem',
-            background: `${currentPhase.badgeColor}33`,
-            color: currentPhase.badgeColor,
-            padding: '2px 8px',
-            borderRadius: '10px',
-            fontWeight: 700
-          }}>
-            ACTIVE
-          </span>
-          <span>{currentPhase.label}</span>
-        </div>
 
         {/* User Auth Action Pill — pushed to far right */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
