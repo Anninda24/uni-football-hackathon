@@ -37,6 +37,7 @@ import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 import { SettingsTabbedView } from './views/SettingsTabbedView';
 import { PlayerProfileView } from './views/PlayerProfileView';
 import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
+import { TournamentSettingsView } from './views/TournamentSettingsView';
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -187,6 +188,13 @@ function AppContent() {
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
             <TournamentView defaultTab="STATS" showTabs={false} />
+          </ProtectedRoute>
+        );
+
+      case 'SUB_ADMIN_SETTINGS':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <TournamentSettingsView />
           </ProtectedRoute>
         );
 
