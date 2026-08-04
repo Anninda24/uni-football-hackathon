@@ -33,9 +33,6 @@ import { PlayerRegistrationView } from './views/PlayerRegistrationView';
 import { LoginRegisterView } from './views/LoginRegisterView';
 import { AuctionRulesTabbedView } from './views/AuctionRulesTabbedView';
 import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
-import { MatchCenterView } from './views/MatchCenterView';
-import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
-import { CaptainAnnouncementsView } from './views/CaptainAnnouncementsView';
 import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 import { SettingsTabbedView } from './views/SettingsTabbedView';
 import { PlayerProfileView } from './views/PlayerProfileView';
@@ -163,13 +160,6 @@ function AppContent() {
           </ProtectedRoute>
         );
 
-      case 'MANAGER_ICON_PLAYERS':
-        return (
-          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <CaptainDashboardView />
-          </ProtectedRoute>
-        );
-
       // --- PODIUM ADMIN ROUTES ---
       case 'PODIUM_PLAYER_POOL':
         return (
@@ -214,24 +204,10 @@ function AppContent() {
           </ProtectedRoute>
         );
 
-      case 'MATCH_CENTER':
+      case 'ICON_PLAYER_AUCTION':
         return (
           <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <MatchCenterView />
-          </ProtectedRoute>
-        );
-
-      case 'TEAM_PERFORMANCE':
-        return (
-          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TeamPerformanceStatsView />
-          </ProtectedRoute>
-        );
-
-      case 'CAPTAIN_ANNOUNCEMENTS':
-        return (
-          <ProtectedRoute allowedRoles={['ICON_PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <CaptainAnnouncementsView />
+            <LiveAuctionView />
           </ProtectedRoute>
         );
 

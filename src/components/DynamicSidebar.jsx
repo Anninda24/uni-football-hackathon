@@ -20,7 +20,6 @@ import {
   Crown,
   Lock,
   TrendingUp,
-  Newspaper,
   Shield
 } from 'lucide-react';
 
@@ -54,9 +53,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'CAPTAIN_DASHBOARD', label: 'Captain Dashboard', icon: Crown },
           { id: 'MY_TEAM', label: 'My Team Info', icon: Users },
-          { id: 'MATCH_CENTER', label: 'Match Center', icon: Calendar },
-          { id: 'TEAM_PERFORMANCE', label: 'Team Performance Stats', icon: TrendingUp },
-          { id: 'CAPTAIN_ANNOUNCEMENTS', label: 'Captain Announcements', icon: Newspaper }
+          { id: 'ICON_PLAYER_AUCTION', label: 'Auction', icon: Gavel }
         ];
 
       case 'PLAYER':
@@ -69,8 +66,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'MANAGER_MY_PROFILE', label: 'My Profile', icon: UserCheck },
           { id: 'MANAGER_MY_TEAM', label: 'My Team', icon: Trophy },
-          { id: 'MANAGER_AUCTION', label: 'Auction', icon: Gavel },
-          { id: 'MANAGER_ICON_PLAYERS', label: 'Icon Players', icon: Crown }
+          { id: 'MANAGER_AUCTION', label: 'Auction', icon: Gavel }
         ];
 
       case 'PODIUM_ADMIN':
