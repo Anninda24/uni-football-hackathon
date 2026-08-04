@@ -107,6 +107,11 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
       return;
     }
 
+    if (!formData.imageUrl && !imagePreview) {
+      addNotification('error', 'Profile Photo Required', 'You must upload a profile photo to register/update the Team Manager.');
+      return;
+    }
+
     const defaultImg = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
     if (editingManager) {

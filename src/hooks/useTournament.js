@@ -1,118 +1,114 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { api } from '../services/api.js';
 
 const SOCKET_URL = 'http://localhost:5000';
+const API = 'http://localhost:5000/api/tournament';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Hook: useTournament — REST data + live match score subscriptions
-// ─────────────────────────────────────────────────────────────────────────────
+const safeFetch = async (url) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+};
+
 export function useTournament() {
-  const [matches,     setMatches]     = useState([]);
-  const [standings,   setStandings]   = useState([]);
-  const [leaderboards, setLeaderboards] = useState({ topScorers: [], topAssists: [], cleanSheets: [] });
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState(null);
-  const socketRef = useRef(null);
+  const [matches,      setMatches]      = useState([]);
+  const [standings,    setStandings]    = useState([]);
+  const [leaderboards, setLeaderboards] = useState({
+    topScorers: [],
+    topAssists: [],
+    cleanSheets: [],
+    topSavers: [],
+    allPlayerStats: [],
+    allPlayerStatsMap: {}
+  });
+  const [groups,       setGroups]       = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [backendOnline, setBackendOnline] = useState(false);
+  const socketRef  = useRef(null);
   const matchesRef = useRef(matches);
   matchesRef.current = matches;
 
-  // Fetch all fixtures from backend
-  const fetchMatches = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('http://localhost:5000/api/tournament/matches');
-      const data = await res.json();
-      if (data.success) {
-        setMatches(data.matches);
-      }
-    } catch (e) {
-      setError('Failed to load fixtures');
-    } finally {
-      setLoading(false);
-    }
+  const fetchMatches = useCallback(async (groupId = null) => {
+    setLoading(true);
+    const url = groupId ? `${API}/matches?groupId=${groupId}` : `${API}/matches`;
+    const data = await safeFetch(url);
+    if (data?.success) { setMatches(data.matches); setBackendOnline(true); }
+    setLoading(false);
   }, []);
 
-  // Fetch points table
-  const fetchStandings = useCallback(async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/tournament/standings');
-      const data = await res.json();
-      if (data.success) setStandings(data.standings);
-    } catch (e) {
-      setError('Failed to load standings');
-    }
+  const fetchStandings = useCallback(async (groupId = null) => {
+    const url = groupId ? `${API}/standings?groupId=${groupId}` : `${API}/standings`;
+    const data = await safeFetch(url);
+    if (data?.success) setStandings(data.standings);
   }, []);
 
-  // Fetch player leaderboards
   const fetchLeaderboards = useCallback(async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/tournament/leaderboards');
-      const data = await res.json();
-      if (data.success) setLeaderboards(data);
-    } catch (e) {
-      setError('Failed to load leaderboards');
+    const data = await safeFetch(`${API}/leaderboards`);
+    if (data?.success) {
+      setLeaderboards({
+        topScorers: data.topScorers || [],
+        topAssists: data.topAssists || [],
+        cleanSheets: data.cleanSheets || [],
+        topSavers: data.topSavers || [],
+        allPlayerStats: data.allPlayerStats || [],
+        allPlayerStatsMap: data.allPlayerStatsMap || {}
+      });
     }
   }, []);
+
+  const fetchGroups = useCallback(async () => {
+    const data = await safeFetch(`${API}/groups`);
+    if (data?.success) setGroups(data.groups);
+  }, []);
+
+  const refetch = useCallback((groupId = null) => {
+    fetchMatches(groupId);
+    fetchStandings(groupId);
+    fetchLeaderboards();
+    fetchGroups();
+  }, [fetchMatches, fetchStandings, fetchLeaderboards, fetchGroups]);
 
   useEffect(() => {
     fetchMatches();
     fetchStandings();
     fetchLeaderboards();
+    fetchGroups();
 
-    // Subscribe to live score updates via WebSocket
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
-    socketRef.current = socket;
+    let socket;
+    try {
+      socket = io(SOCKET_URL, { transports: ['websocket'], reconnectionAttempts: 5, timeout: 5000 });
+      socketRef.current = socket;
 
-    socket.on('connect', () => {
-      // Join rooms for all known matches
-      matchesRef.current.forEach(m => {
-        socket.emit('join_match_room', m.id);
-      });
-    });
+      socket.on('connect',    () => setBackendOnline(true));
+      socket.on('disconnect', () => setBackendOnline(false));
 
-    socket.on('match_score_update', (update) => {
-      // Patch the updated match in local state without a full re-fetch
-      setMatches((prev) =>
-        prev.map((m) =>
+      socket.on('match_score_update', (update) => {
+        setMatches(prev => prev.map(m =>
           m.id === update.matchId
             ? { ...m, scoreA: update.scoreA, scoreB: update.scoreB, status: update.status, aggScoreA: update.aggScoreA, aggScoreB: update.aggScoreB }
             : m
-        )
-      );
-      // Refresh standings after score change
-      fetchStandings();
-    });
-
-    return () => socket.disconnect();
-  }, [fetchMatches, fetchStandings, fetchLeaderboards]);
-
-  // Ensure we join rooms for any new matches added to state
-  useEffect(() => {
-    if (socketRef.current) {
-      matches.forEach(m => {
-        socketRef.current.emit('join_match_room', m.id);
+        ));
+        fetchStandings();
+        fetchLeaderboards();
       });
+    } catch { /* graceful */ }
+
+    return () => { if (socket) socket.disconnect(); };
+  }, [fetchMatches, fetchStandings, fetchLeaderboards, fetchGroups]);
+
+  useEffect(() => {
+    if (socketRef.current?.connected) {
+      matches.forEach(m => socketRef.current.emit('join_match_room', m.id));
     }
   }, [matches]);
 
-  return {
-    matches,
-    standings,
-    leaderboards,
-    loading,
-    error,
-    refetch: () => {
-      fetchMatches();
-      fetchStandings();
-      fetchLeaderboards();
-    }
-  };
+  return { matches, standings, leaderboards, groups, loading, backendOnline, refetch, fetchStandings, fetchMatches };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: Compute winner of a two-legged tie from a match record
-// ─────────────────────────────────────────────────────────────────────────────
 export function getTwoLeggedWinner(match) {
   if (!match.isTwoLegged) return null;
   if (match.aggScoreA > match.aggScoreB) return match.teamAId;

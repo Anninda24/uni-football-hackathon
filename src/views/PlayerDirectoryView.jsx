@@ -128,6 +128,11 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
       return;
     }
 
+    if (!formData.imageUrl && !imagePreview) {
+      addNotification('error', 'Profile Photo Required', 'You must upload a profile image for the player / icon player.');
+      return;
+    }
+
     const category = systemState.categories.find(c => c.id === formData.categoryId) || systemState.categories[0];
     const defaultImg = 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&auto=format&fit=crop&q=80';
 

@@ -7,7 +7,7 @@ export const PRESET_ACCOUNTS = {
   SUPER_ADMIN: {
     id: 'usr-admin',
     name: 'Super Admin',
-    email: 'admin@football.com',
+    email: 'admin@gmail.com',
     role: 'SUPER_ADMIN',
     avatar: '👑',
     teamId: null
@@ -15,7 +15,7 @@ export const PRESET_ACCOUNTS = {
   SUB_ADMIN: {
     id: 'usr-subadmin',
     name: 'Sub Admin',
-    email: 'subadmin@football.com',
+    email: 'subadmin@gmail.com',
     role: 'SUB_ADMIN',
     avatar: '🛡️',
     teamId: null
@@ -23,7 +23,7 @@ export const PRESET_ACCOUNTS = {
   PODIUM_ADMIN: {
     id: 'usr-podium',
     name: 'Podium Auctioneer',
-    email: 'podium@football.com',
+    email: 'podium@gmail.com',
     role: 'PODIUM_ADMIN',
     avatar: '🎙️',
     teamId: null
@@ -31,7 +31,7 @@ export const PRESET_ACCOUNTS = {
   ICON_PLAYER: {
     id: 'usr-icon-player',
     name: 'Icon Player',
-    email: 'icon@football.com',
+    email: 'icon@gmail.com',
     role: 'ICON_PLAYER',
     avatar: '⭐',
     teamId: null
@@ -39,7 +39,7 @@ export const PRESET_ACCOUNTS = {
   TEAM_MANAGER: {
     id: 'mgr-1',
     name: 'Alex Mercer',
-    email: 'alex@thunderbolts.com',
+    email: 'manager@gmail.com',
     role: 'TEAM_MANAGER',
     avatar: '👔',
     teamId: 'team-1',
@@ -48,16 +48,16 @@ export const PRESET_ACCOUNTS = {
   PLAYER: {
     id: 'ply-1',
     name: 'Julian Sterling',
-    email: 'julian@student.edu',
+    email: 'player@gmail.com',
     role: 'PLAYER',
     avatar: '⚽',
-    studentId: 'ST-2024-881',
+    studentId: 'ST-2026-001',
     teamId: 'team-1'
   },
   SPECTATOR: {
     id: 'usr-guest',
     name: 'Guest Spectator',
-    email: 'guest@public.com',
+    email: 'spectator@gmail.com',
     role: 'SPECTATOR',
     avatar: '👁️',
     teamId: null
@@ -72,13 +72,52 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('ff_current_user', JSON.stringify(currentUser));
+
+    // Automatically obtain real JWT token from backend for API authentication
+    if (currentUser?.email) {
+      fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, password: '123456' })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.token) {
+          localStorage.setItem('ff_jwt_token', data.token);
+        }
+      })
+      .catch(() => {
+        // Silently catch if backend is offline
+      });
+    }
   }, [currentUser]);
 
   // Login method supporting email/username and password
-  const login = (usernameOrEmail, password, preferredRole = null) => {
+  const login = async (usernameOrEmail, password, preferredRole = null) => {
     const query = (usernameOrEmail || '').toLowerCase().trim();
     
-    // Check preset accounts matching email, id, name prefix or role keyword
+    // Check backend login first if user provided password
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: query, password: password || '123456' })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        localStorage.setItem('ff_jwt_token', data.token);
+        const userObj = {
+          ...data.user,
+          avatar: data.user.role === 'SUPER_ADMIN' ? '👑' : data.user.role === 'SUB_ADMIN' ? '🛡️' : data.user.role === 'PODIUM_ADMIN' ? '🎙️' : data.user.role === 'TEAM_MANAGER' ? '👔' : '⚽'
+        };
+        setCurrentUser(userObj);
+        return { success: true, user: userObj };
+      }
+    } catch {
+      // Fallback to preset local matching if backend offline
+    }
+
+    // Fallback: Check preset accounts matching email, id, name prefix or role keyword
     const matchedPreset = Object.values(PRESET_ACCOUNTS).find(acc => {
       if (!query) return false;
       const emailMatch = acc.email.toLowerCase() === query;
@@ -93,50 +132,42 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: matchedPreset };
     }
 
-    // Default target role based on username keywords if specified
     const targetRole = preferredRole || (query.includes('admin') ? 'SUPER_ADMIN' : query.includes('subadmin') ? 'SUB_ADMIN' : query.includes('podium') ? 'PODIUM_ADMIN' : query.includes('icon') ? 'ICON_PLAYER' : query.includes('mgr') || query.includes('manager') || query.includes('alex') ? 'TEAM_MANAGER' : 'SUPER_ADMIN');
 
     const newUser = {
       id: `usr-${Date.now()}`,
-      name: usernameOrEmail ? (usernameOrEmail.split('@')[0] || usernameOrEmail) : 'Super Admin',
-      email: usernameOrEmail && usernameOrEmail.includes('@') ? usernameOrEmail : `${usernameOrEmail || 'admin'}@football.com`,
+      name: usernameOrEmail || 'User',
+      email: query.includes('@') ? query : `${query}@university.edu`,
       role: targetRole,
-      avatar: targetRole === 'SUPER_ADMIN' ? '⚡' : targetRole === 'TEAM_MANAGER' ? '👔' : '👤',
-      teamId: null
+      avatar: targetRole === 'SUPER_ADMIN' ? '👑' : targetRole === 'SUB_ADMIN' ? '🛡️' : targetRole === 'PODIUM_ADMIN' ? '🎙️' : targetRole === 'TEAM_MANAGER' ? '👔' : '⚽',
+      teamId: targetRole === 'TEAM_MANAGER' ? 'team-1' : null
     };
 
     setCurrentUser(newUser);
     return { success: true, user: newUser };
   };
 
-  // Logout resets to SPECTATOR public visitor state
   const logout = () => {
+    localStorage.removeItem('ff_jwt_token');
     setCurrentUser(PRESET_ACCOUNTS.SPECTATOR);
   };
 
-  // Switch role directly (Dev / Principal Engineer Quick-Switcher)
-  const switchRole = (newRole) => {
-    if (PRESET_ACCOUNTS[newRole]) {
-      setCurrentUser(PRESET_ACCOUNTS[newRole]);
-    } else {
-      setCurrentUser(prev => ({ ...prev, role: newRole }));
+  const switchRole = (roleKey) => {
+    if (PRESET_ACCOUNTS[roleKey]) {
+      setCurrentUser(PRESET_ACCOUNTS[roleKey]);
     }
   };
 
-  const isAuthenticated = currentUser.role !== 'SPECTATOR';
-
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        setCurrentUser,
-        login,
-        logout,
-        switchRole,
-        isAuthenticated,
-        PRESET_ACCOUNTS
-      }}
-    >
+    <AuthContext.Provider value={{
+      currentUser,
+      setCurrentUser,
+      PRESET_ACCOUNTS,
+      login,
+      logout,
+      switchRole,
+      isAuthenticated: currentUser.role !== 'SPECTATOR'
+    }}>
       {children}
     </AuthContext.Provider>
   );

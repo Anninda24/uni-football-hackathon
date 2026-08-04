@@ -22,10 +22,23 @@ export function LoginRegisterView({ onLoginSuccess }) {
   const [regJerseyNumber, setRegJerseyNumber] = useState('');
   const [regPrimaryPosition, setRegPrimaryPosition] = useState(systemState.positions[0]?.code || '');
   const [regSecondaryPositions, setRegSecondaryPositions] = useState([]);
+  const [regImageUrl, setRegImageUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
 
   const positions = systemState.positions || [];
   const sessions = systemState.academicSessions || [];
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setTimeout(() => {
+      setRegImageUrl(URL.createObjectURL(file));
+      setUploadingImage(false);
+      addNotification('success', 'Image Uploaded', 'Profile photo attached.');
+    }, 600);
+  };
 
   const toggleSecondaryPosition = (code) => {
     if (code === regPrimaryPosition) return;
@@ -60,6 +73,11 @@ export function LoginRegisterView({ onLoginSuccess }) {
       return;
     }
 
+    if (!regImageUrl) {
+      addNotification('error', 'Profile Image Required', 'You must upload a profile photo to complete registration.');
+      return;
+    }
+
     const newPlayer = {
       id: 'ply-' + Date.now(),
       name: regName,
@@ -71,7 +89,7 @@ export function LoginRegisterView({ onLoginSuccess }) {
       jerseyNumber: regJerseyNumber,
       primaryPosition: regPrimaryPosition,
       secondaryPositions: regSecondaryPositions,
-      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+      imageUrl: regImageUrl,
       cloudPublicId: 'cld_ply_' + Date.now(),
       categoryId: '',
       basePrice: 0,
@@ -455,6 +473,30 @@ export function LoginRegisterView({ onLoginSuccess }) {
                     );
                   })}
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Profile Photo *</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    background: '#1e293b',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#94a3b8',
+                    fontSize: '0.82rem'
+                  }}
+                />
+                {regImageUrl && (
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img src={regImageUrl} alt="Preview" style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--accent-green)' }} />
+                    <span style={{ fontSize: '0.78rem', color: '#00e699' }}>✓ Profile photo attached</span>
+                  </div>
+                )}
               </div>
 
               <button

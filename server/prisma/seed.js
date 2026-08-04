@@ -32,7 +32,17 @@ async function main() {
     }
   });
 
-  // 2. Podium Admin
+  // 2. Sub Admin
+  const subAdminUser = await prisma.user.create({
+    data: {
+      name: 'Sub Admin',
+      email: 'subadmin@gmail.com',
+      password: hashedPassword,
+      role: 'SUB_ADMIN'
+    }
+  });
+
+  // 3. Podium Admin
   const podiumUser = await prisma.user.create({
     data: {
       name: 'Podium Auctioneer',
@@ -93,10 +103,10 @@ async function main() {
     }
   });
 
-  console.log('⚙️ Initializing SystemState (SETUP Phase)...');
+  console.log('⚙️ Initializing SystemState (TOURNAMENT Phase)...');
   await prisma.systemState.create({
     data: {
-      currentPhase: 'SETUP'
+      currentPhase: 'TOURNAMENT'
     }
   });
 

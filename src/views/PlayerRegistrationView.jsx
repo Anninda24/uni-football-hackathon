@@ -76,6 +76,11 @@ export const PlayerRegistrationView = () => {
       return;
     }
 
+    if (!formData.imageUrl && !imagePreview) {
+      addNotification('error', 'Profile Photo Required', 'You must upload a profile image to complete player registration.');
+      return;
+    }
+
     const category = systemState.categories.find(c => c.id === formData.categoryId) || systemState.categories[0];
     const defaultImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 

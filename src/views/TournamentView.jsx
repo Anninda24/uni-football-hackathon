@@ -10,18 +10,23 @@ import {
   MapPin, 
   Layers,
   Edit3,
-  Flame,
-  Shield,
+  Trash2,
   Activity,
   Search,
   Crown,
   BarChart3,
-  X
+  X,
+  Users,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  FolderPlus
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:5000/api';
 
-export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
+export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOnly = false }) => {
   const { 
     currentUser, 
     teams, 
@@ -29,51 +34,75 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
     addNotification 
   } = useSystem();
 
-  const { matches: backendMatches, standings: backendStandings, leaderboards, refetch } = useTournament();
-  const [rightTab, setRightTab] = useState(defaultTab);
+  const { 
+    matches: backendMatches, 
+    standings: backendStandings, 
+    leaderboards, 
+    groups: backendGroups,
+    refetch 
+  } = useTournament();
 
-  // Sync active tab whenever the route changes (sidebar nav in Sub Admin reuses same component)
+  const [rightTab, setRightTab] = useState(defaultTab);
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState('ALL');
+
   useEffect(() => {
     setRightTab(defaultTab);
   }, [defaultTab]);
-  
+
+  // Admin permission check (SUPER_ADMIN, PODIUM_ADMIN, and SUB_ADMIN allowed)
+  const canEdit = !readOnly && (
+    currentUser?.role === 'SUPER_ADMIN' || 
+    currentUser?.role === 'PODIUM_ADMIN' || 
+    currentUser?.role === 'SUB_ADMIN'
+  );
+
   // Modals state
-  const [showFixtureModal, setShowFixtureModal] = useState(false);
-  const [homeTeamId, setHomeTeamId] = useState(teams[0]?.id || '');
-  const [awayTeamId, setAwayTeamId] = useState(teams[1]?.id || '');
-  const [venue, setVenue] = useState('University Main Stadium');
-  const [date, setDate] = useState('2026-08-25T16:00');
-  const [isLegged, setIsLegged] = useState(true);
-  const [selectedFixture, setSelectedFixture] = useState(null);
-  const [editHomeScore, setEditHomeScore] = useState(0);
-  const [editAwayScore, setEditAwayScore] = useState(0);
-  const [eventPlayerId, setEventPlayerId] = useState('');
-  const [eventType, setEventType] = useState('GOAL');
-  const [eventAssistId, setEventAssistId] = useState('');
-  const [eventMinute, setEventMinute] = useState(45);
-
-  // Filters state
-  const [matchStatusFilter, setMatchStatusFilter] = useState('ALL');
-  const [matchSearch, setMatchSearch] = useState('');
-  const [standingsMode, setStandingsMode] = useState('ALL');
-  const [playerSearch, setPlayerSearch] = useState('');
-  const [playerTeamFilter, setPlayerTeamFilter] = useState('ALL');
-  const [playerSortKey, setPlayerSortKey] = useState('goals');
-
-  // Add Match Modal state (separate from score edit modal)
+  const [selectedFixture, setSelectedFixture] = useState(null); // For event/score logger
+  const [deletingMatch, setDeletingMatch] = useState(null);     // For delete confirm
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+
+  // Add Match Modal Form state
   const [addHomeTeamId, setAddHomeTeamId] = useState(teams[0]?.id || '');
   const [addAwayTeamId, setAddAwayTeamId] = useState(teams[1]?.id || '');
   const [addDate, setAddDate] = useState('2026-08-25T16:00');
   const [addReturnDate, setAddReturnDate] = useState('2026-09-01T16:00');
   const [addIsLegged, setAddIsLegged] = useState(false);
+  const [addGroupId, setAddGroupId] = useState('');
+
+  // Event Logger Form state
+  const [eventType, setEventType] = useState('GOAL');
+  const [eventPlayerId, setEventPlayerId] = useState('');
+  const [eventAssistId, setEventAssistId] = useState('');
+  const [eventMinute, setEventMinute] = useState(45);
+  const [eventSubmitting, setEventSubmitting] = useState(false);
+
+  // Group Management Form state
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState('#3b82f6');
+  const [selectedGroupTeamIds, setSelectedGroupTeamIds] = useState([]);
+
+  // Filters state
+  const [matchStatusFilter, setMatchStatusFilter] = useState('ALL');
+  const [matchSearch, setMatchSearch] = useState('');
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [playerTeamFilter, setPlayerTeamFilter] = useState('ALL');
+  const [playerSortKey, setPlayerSortKey] = useState('goals');
 
   // Data helpers
   const fixtures = backendMatches.length > 0 ? backendMatches : [];
   const standings = backendStandings.length > 0 ? backendStandings : [];
+  const groups = backendGroups.length > 0 ? backendGroups : [];
   const topScorers = leaderboards.topScorers || [];
   const topAssists = leaderboards.topAssists || [];
   const cleanSheetsList = leaderboards.cleanSheets || [];
+  const topSavers = leaderboards.topSavers || [];
+  const allStatsMap = leaderboards.allPlayerStatsMap || {};
+
+  // Refetch standings when group filter changes
+  useEffect(() => {
+    refetch(selectedGroupFilter === 'ALL' ? null : selectedGroupFilter);
+  }, [selectedGroupFilter, refetch]);
 
   // Filtered fixtures
   const filteredFixtures = useMemo(() => {
@@ -85,27 +114,22 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         (awayTeam?.name || fix.teamBName || '').toLowerCase().includes(matchSearch.toLowerCase());
       
       const statusMatch = matchStatusFilter === 'ALL' || fix.status === matchStatusFilter;
-      return searchMatch && statusMatch;
+      const groupMatch  = selectedGroupFilter === 'ALL' || fix.groupId === selectedGroupFilter;
+      return searchMatch && statusMatch && groupMatch;
     });
-  }, [fixtures, teams, matchSearch, matchStatusFilter]);
-
-  // Filtered standings by mode
-  const filteredStandings = useMemo(() => {
-    if (standingsMode === 'ALL') return standings;
-    if (standingsMode === 'SINGLE') return standings.filter(s => !s.isTwoLegged);
-    if (standingsMode === 'TWOLEG') return standings.filter(s => s.isTwoLegged);
-    return standings;
-  }, [standings, standingsMode]);
+  }, [fixtures, teams, matchSearch, matchStatusFilter, selectedGroupFilter]);
 
   // Leader team (1st place)
-  const leagueLeader = filteredStandings[0];
+  const leagueLeader = standings[0];
 
-  // Combined computed player statistics
+  // Combined computed player statistics using allStatsMap dictionary from backend
   const combinedPlayerStats = useMemo(() => {
     return players.map(p => {
+      const statObj = allStatsMap[p.id] || {};
       const scorerObj = topScorers.find(s => s.playerId === p.id);
       const assistObj = topAssists.find(s => s.playerId === p.id);
       const csObj = cleanSheetsList.find(s => s.playerId === p.id);
+      const saverObj = topSavers.find(s => s.playerId === p.id);
       const team = teams.find(t => t.id === p.soldToTeamId || t.id === p.teamId);
 
       return {
@@ -116,108 +140,27 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         teamName: team?.name || 'Unassigned',
         teamLogo: team?.logo || '⚽',
         teamId: team?.id || '',
-        goals: scorerObj?.goals || p.goals || 0,
-        assists: assistObj?.assists || p.assists || 0,
-        cleanSheets: csObj?.cleanSheets || p.cleanSheets || 0,
-        yellowCards: p.yellowCards || 0,
-        redCards: p.redCards || 0,
-        played: p.matchesPlayed || (scorerObj?.goals ? 1 : 0)
+        goals:       statObj.goals       ?? scorerObj?.goals       ?? p.goals       ?? 0,
+        assists:     statObj.assists     ?? assistObj?.assists     ?? p.assists     ?? 0,
+        cleanSheets: statObj.cleanSheets ?? csObj?.cleanSheets     ?? p.cleanSheets ?? 0,
+        saves:       statObj.saves       ?? saverObj?.saves       ?? p.saves       ?? 0,
+        yellowCards: statObj.yellowCards ?? 0,
+        redCards:    statObj.redCards    ?? 0,
+        played:      statObj.played      ?? p.matchesPlayed       ?? 0
       };
     }).filter(p => {
       const matchesSearch = !playerSearch.trim() || p.name.toLowerCase().includes(playerSearch.toLowerCase());
       const matchesTeam = playerTeamFilter === 'ALL' || p.teamId === playerTeamFilter;
       return matchesSearch && matchesTeam;
     }).sort((a, b) => (b[playerSortKey] || 0) - (a[playerSortKey] || 0));
-  }, [players, teams, topScorers, topAssists, cleanSheetsList, playerSearch, playerTeamFilter, playerSortKey]);
+  }, [players, teams, allStatsMap, topScorers, topAssists, cleanSheetsList, topSavers, playerSearch, playerTeamFilter, playerSortKey]);
 
-  // Event handlers
-  const handleCreateFixture = async (e) => {
-    e.preventDefault();
-    if (homeTeamId === awayTeamId) {
-      addNotification('error', 'Invalid Matchup', 'Home and Away teams must be different.');
-      return;
-    }
-
-    const token = localStorage.getItem('ff_jwt_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    try {
-      const res = await fetch(`${API_BASE}/tournament/matches`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          teamAId: homeTeamId,
-          teamBId: awayTeamId,
-          teamAName: teams.find(t => t.id === homeTeamId)?.name || '',
-          teamBName: teams.find(t => t.id === awayTeamId)?.name || '',
-          scheduledTime: date,
-          venue,
-          isTwoLegged: isLegged
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        addNotification('success', 'Fixtures Created', isLegged ? 'Home and Away fixtures successfully added.' : 'Single match fixture created.');
-        refetch();
-      } else {
-        addNotification('error', 'Error', data.message || 'Failed to create fixtures');
-      }
-    } catch (err) {
-      addNotification('error', 'Network Error', err.message);
-    }
-
-    setShowFixtureModal(false);
-  };
-
-  const openScoreModal = (fix) => {
-    setSelectedFixture(fix);
-    setEditHomeScore(fix.scoreA || 0);
-    setEditAwayScore(fix.scoreB || 0);
-  };
-
-  const handleSaveScore = async (e) => {
-    e.preventDefault();
-    if (!selectedFixture) return;
-
-    const token = localStorage.getItem('ff_jwt_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    try {
-      const res = await fetch(`${API_BASE}/tournament/matches/${selectedFixture.id}/score`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          scoreA: Number(editHomeScore),
-          scoreB: Number(editAwayScore),
-          status: 'COMPLETED'
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        addNotification('success', 'Match Score Updated', 'Live match result broadcast & points table auto-updated.');
-        refetch();
-      } else {
-        addNotification('error', 'Error', data.message || 'Failed to update score');
-      }
-    } catch (err) {
-      addNotification('error', 'Network Error', err.message);
-    }
-
-    setSelectedFixture(null);
-  };
-
+  // ── Match Handlers ─────────────────────────────────────────────────────────
 
   const handleAddMatch = async (e) => {
     e.preventDefault();
     if (!addHomeTeamId || !addAwayTeamId || addHomeTeamId === addAwayTeamId) {
       addNotification('error', 'Invalid Selection', 'Please select two different teams.');
-      return;
-    }
-
-    if (addIsLegged && !addReturnDate) {
-      addNotification('error', 'Missing Date', 'Please select a return leg date for the 2nd match.');
       return;
     }
 
@@ -232,9 +175,11 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         body: JSON.stringify({
           teamAId: addHomeTeamId,
           teamBId: addAwayTeamId,
+          teamAName: teams.find(t => t.id === addHomeTeamId)?.name || '',
+          teamBName: teams.find(t => t.id === addAwayTeamId)?.name || '',
           scheduledTime: addDate,
-          returnLegTime: addIsLegged ? addReturnDate : null,
-          isTwoLegged: addIsLegged
+          isTwoLegged: addIsLegged,
+          groupId: addGroupId || null
         })
       });
       const data = await res.json();
@@ -243,23 +188,190 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         refetch();
         setShowAddMatchModal(false);
       } else {
-        addNotification('error', 'Error', data.message || 'Failed to create match');
+        addNotification('error', 'Error', data.message || 'Failed to create match. Ensure system phase is set to TOURNAMENT.');
       }
     } catch (err) {
-      addNotification('error', 'Network Error', err.message);
+      addNotification('error', 'Backend Server Offline', 'Cannot reach backend at localhost:5000. Please run: cd server && npm start');
     }
   };
 
-  const handleAddEvent = (e) => {
-    e.preventDefault();
-    if (!eventPlayerId || !selectedFixture) return;
+  const handleDeleteMatch = async () => {
+    if (!deletingMatch) return;
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const ply = players.find(p => p.id === eventPlayerId);
-
-    addNotification('info', 'Match Event Logged', `${eventType} logged for ${ply?.name || 'Player'} at ${eventMinute}'!`);
-    setEventPlayerId('');
-    setEventAssistId('');
+    try {
+      const res = await fetch(`${API_BASE}/tournament/matches/${deletingMatch.id}`, {
+        method: 'DELETE',
+        headers
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Match Deleted', 'Fixture and stats permanently removed.');
+        refetch();
+      } else {
+        addNotification('error', 'Error', data.message || 'Failed to delete match.');
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', 'Could not delete fixture.');
+    }
+    setDeletingMatch(null);
   };
+
+  // ── Event Logger Handlers ──────────────────────────────────────────────────
+
+  const handleAddEvent = async (e) => {
+    e.preventDefault();
+    if (!eventPlayerId || !selectedFixture) {
+      addNotification('error', 'Missing Data', 'Please select a player.');
+      return;
+    }
+
+    const playerObj = players.find(p => p.id === eventPlayerId);
+    const playerTeamId = playerObj?.soldToTeamId || playerObj?.teamId || selectedFixture.teamAId;
+
+    setEventSubmitting(true);
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/tournament/matches/${selectedFixture.id}/events`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          type: eventType,
+          teamId: playerTeamId,
+          playerId: eventPlayerId,
+          assistPlayerId: eventType === 'GOAL' && eventAssistId ? eventAssistId : null,
+          minute: Number(eventMinute)
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Event Logged', `${eventType} recorded for ${playerObj?.name || 'Player'} at ${eventMinute}'! Score & stats auto-updated.`);
+        setSelectedFixture(data.match || selectedFixture);
+        setEventPlayerId('');
+        setEventAssistId('');
+        refetch();
+      } else {
+        addNotification('error', 'Error', data.message || 'Failed to log event.');
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', err.message);
+    } finally {
+      setEventSubmitting(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!selectedFixture) return;
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/tournament/matches/${selectedFixture.id}/events/${eventId}`, {
+        method: 'DELETE',
+        headers
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Event Removed', 'Event removed and stats rolled back.');
+        setSelectedFixture(data.match || selectedFixture);
+        refetch();
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', err.message);
+    }
+  };
+
+  const handleCompleteMatch = async () => {
+    if (!selectedFixture) return;
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/tournament/matches/${selectedFixture.id}/complete`, {
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Match Completed!', 'Match status set to COMPLETED and clean sheet bonuses auto-awarded.');
+        setSelectedFixture(null);
+        refetch();
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', err.message);
+    }
+  };
+
+  // ── Group Management Handlers ─────────────────────────────────────────────
+
+  const handleCreateGroup = async (e) => {
+    e.preventDefault();
+    if (!newGroupName.trim()) return;
+
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/tournament/groups`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: newGroupName,
+          color: newGroupColor,
+          teamIds: selectedGroupTeamIds
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Group Created', `Group "${newGroupName}" added successfully.`);
+        setNewGroupName('');
+        setSelectedGroupTeamIds([]);
+        refetch();
+      } else {
+        addNotification('error', 'Error', data.message || 'Failed to create group.');
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', err.message);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId, groupName) => {
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/tournament/groups/${groupId}`, {
+        method: 'DELETE',
+        headers
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('success', 'Group Deleted', `Group "${groupName}" removed.`);
+        if (selectedGroupFilter === groupId) setSelectedGroupFilter('ALL');
+        refetch();
+      }
+    } catch (err) {
+      addNotification('error', 'Backend Error', err.message);
+    }
+  };
+
+  // Players eligible for event dropdowns
+  const matchPlayers = useMemo(() => {
+    if (!selectedFixture) return [];
+    return players.filter(p => {
+      const teamId = p.soldToTeamId || p.teamId;
+      return teamId === selectedFixture.teamAId || teamId === selectedFixture.teamBId;
+    });
+  }, [players, selectedFixture]);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -275,19 +387,28 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
               Live Tournament & Statistics
             </h1>
             <p style={{ color: '#94a3b8', fontSize: '0.92rem', margin: '6px 0 0 0' }}>
-              Fixtures schedule, automated league standings, and comprehensive player performance statistics.
+              Fixtures schedule, automated group standings, and comprehensive player performance statistics.
             </p>
           </div>
 
-          {/* Admin Action */}
-          {(currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SUB_ADMIN') && (
-            <button
-              onClick={() => setShowAddMatchModal(true)}
-              className="btn btn-gold"
-              style={{ padding: '12px 24px', fontSize: '0.9rem', borderRadius: '12px' }}
-            >
-              <Plus size={18} /> Add Match
-            </button>
+          {/* Admin Action Buttons */}
+          {canEdit && (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowGroupModal(true)}
+                className="btn btn-secondary"
+                style={{ padding: '12px 20px', fontSize: '0.9rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <FolderPlus size={18} /> Manage Groups
+              </button>
+              <button
+                onClick={() => setShowAddMatchModal(true)}
+                className="btn btn-gold"
+                style={{ padding: '12px 24px', fontSize: '0.9rem', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <Plus size={18} /> Add Match
+              </button>
+            </div>
           )}
         </div>
 
@@ -364,6 +485,38 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         )}
       </div>
 
+      {/* Group Filter Bar (Visible in Matches & Standings) */}
+      {(rightTab === 'MATCHES' || rightTab === 'STANDINGS') && groups.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: 'rgba(15, 23, 42, 0.6)', padding: '10px 18px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginRight: '6px' }}>Group Stage Filter:</span>
+          <button
+            onClick={() => setSelectedGroupFilter('ALL')}
+            style={{
+              padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', border: '1px solid',
+              borderColor: selectedGroupFilter === 'ALL' ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+              background: selectedGroupFilter === 'ALL' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+              color: selectedGroupFilter === 'ALL' ? '#60a5fa' : '#94a3b8'
+            }}
+          >
+            All Teams
+          </button>
+          {groups.map(g => (
+            <button
+              key={g.id}
+              onClick={() => setSelectedGroupFilter(g.id)}
+              style={{
+                padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', border: '1px solid',
+                borderColor: selectedGroupFilter === g.id ? g.color || '#3b82f6' : 'rgba(255,255,255,0.1)',
+                background: selectedGroupFilter === g.id ? `${g.color || '#3b82f6'}22` : 'transparent',
+                color: selectedGroupFilter === g.id ? g.color || '#60a5fa' : '#94a3b8'
+              }}
+            >
+              {g.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* TAB 1: MATCHES VIEW */}
       {rightTab === 'MATCHES' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -422,6 +575,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                 const homeTeam = teams.find(t => t.id === fix.teamAId || t.id === fix.homeTeamId);
                 const awayTeam = teams.find(t => t.id === fix.teamBId || t.id === fix.awayTeamId);
                 const pairedFix = fix.pairedMatchId ? fixtures.find(f => f.id === fix.pairedMatchId) : null;
+                const groupObj  = groups.find(g => g.id === fix.groupId);
 
                 let aggHome = fix.scoreA || 0;
                 let aggAway = fix.scoreB || 0;
@@ -440,6 +594,11 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                           {fix.status === 'LIVE' && <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', marginRight: '6px' }} className="animate-pulse" />}
                           {fix.status}
                         </span>
+                        {groupObj && (
+                          <span className="badge" style={{ fontSize: '0.7rem', background: `${groupObj.color || '#3b82f6'}25`, color: groupObj.color || '#60a5fa', border: `1px solid ${groupObj.color || '#3b82f6'}44` }}>
+                            {groupObj.name}
+                          </span>
+                        )}
                         {fix.isTwoLegged && (
                           <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
                             <Layers size={12} /> 2-LEGGED (LEG {fix.leg || 1})
@@ -477,10 +636,16 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                           </div>
                         )}
 
-                        {(currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'PODIUM_ADMIN') && (
-                          <button onClick={() => openScoreModal(fix)} className="btn btn-secondary" style={{ marginTop: '12px', padding: '6px 14px', fontSize: '0.78rem' }}>
-                            <Edit3 size={13} /> Update Score & Events
-                          </button>
+                        {/* Admin Controls: Edit & Delete buttons */}
+                        {canEdit && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                            <button onClick={() => setSelectedFixture(fix)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Edit3 size={13} /> Edit Score & Events
+                            </button>
+                            <button onClick={() => setDeletingMatch(fix)} className="btn" style={{ padding: '6px 10px', fontSize: '0.78rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                              <Trash2 size={13} /> Delete
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -500,11 +665,13 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                       <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.82rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           {fix.events.filter(e => e.teamId === fix.teamAId || e.teamId === homeTeam?.id).map((ev, i) => {
-                            const ply = players.find(p => p.id === ev.playerId);
+                            const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
+                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : '🧤';
                             return (
                               <div key={i} style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : '🟥'}</span>
-                                <span style={{ fontWeight: 700 }}>{ply?.name || ev.playerId}</span>
+                                <span>{icon}</span>
+                                <span style={{ fontWeight: 700 }}>{plyName}</span>
+                                {ev.assistPlayer && <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>(ast: {ev.assistPlayer?.jerseyName || ev.assistPlayer?.user?.name})</span>}
                                 <span style={{ color: '#64748b' }}>({ev.minute}')</span>
                               </div>
                             );
@@ -512,12 +679,14 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right', alignItems: 'flex-end' }}>
                           {fix.events.filter(e => e.teamId === fix.teamBId || e.teamId === awayTeam?.id).map((ev, i) => {
-                            const ply = players.find(p => p.id === ev.playerId);
+                            const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
+                            const icon = ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : ev.type === 'RED_CARD' ? '🟥' : '🧤';
                             return (
                               <div key={i} style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ color: '#64748b' }}>({ev.minute}')</span>
-                                <span style={{ fontWeight: 700 }}>{ply?.name || ev.playerId}</span>
-                                <span>{ev.type === 'GOAL' ? '⚽' : ev.type === 'YELLOW_CARD' ? '🟨' : '🟥'}</span>
+                                {ev.assistPlayer && <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>(ast: {ev.assistPlayer?.jerseyName || ev.assistPlayer?.user?.name})</span>}
+                                <span style={{ fontWeight: 700 }}>{plyName}</span>
+                                <span>{icon}</span>
                               </div>
                             );
                           })}
@@ -546,15 +715,15 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                     <Crown size={16} /> LEAGUE LEADER PODIUM
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ fontSize: '3rem' }}>{leagueLeader.teamLogo || '🏆'}</span>
+                    <span style={{ fontSize: '3rem' }}>{leagueLeader.teamLogo || teams.find(t => t.id === leagueLeader.id)?.logo || '🏆'}</span>
                     <div>
                       <h2 style={{ fontSize: '2rem', fontWeight: 900, margin: 0, color: '#ffffff' }}>
-                        {leagueLeader.teamName}
+                        {leagueLeader.name || leagueLeader.teamName || teams.find(t => t.id === leagueLeader.id)?.name || 'Leader Team'}
                       </h2>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 700 }}>
                         <span style={{ color: '#00e699' }}>1st Place</span>
                         <span>•</span>
-                        <span>{leagueLeader.played} Matches Played</span>
+                        <span>{leagueLeader.mp} Matches Played</span>
                         <span>•</span>
                         <span style={{ color: '#00d9ff' }}>+{leagueLeader.gd} Goal Diff</span>
                       </div>
@@ -564,26 +733,32 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
 
                 {/* Top 3 Cards Grid */}
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  {filteredStandings.slice(0, 3).map((st, i) => (
-                    <div
-                      key={st.teamId || i}
-                      style={{
-                        padding: '14px 20px',
-                        borderRadius: '16px',
-                        background: i === 0 ? 'rgba(255, 183, 3, 0.15)' : i === 1 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(205, 127, 50, 0.15)',
-                        border: i === 0 ? '1px solid rgba(255, 183, 3, 0.4)' : i === 1 ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(205, 127, 50, 0.4)',
-                        textAlign: 'center',
-                        minWidth: '100px'
-                      }}
-                    >
-                      <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>
-                        {i === 0 ? '1st Rank' : i === 1 ? '2nd Rank' : '3rd Rank'}
+                  {standings.slice(0, 3).map((st, i) => {
+                    const teamObj = teams.find(t => t.id === st.id || t.id === st.teamId);
+                    const name = st.name || st.teamName || teamObj?.name || `Team #${i+1}`;
+                    const logo = st.teamLogo || teamObj?.logo || '⚽';
+                    const pts = st.points ?? st.pts ?? 0;
+                    return (
+                      <div
+                        key={st.id || i}
+                        style={{
+                          padding: '14px 20px',
+                          borderRadius: '16px',
+                          background: i === 0 ? 'rgba(255, 183, 3, 0.15)' : i === 1 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(205, 127, 50, 0.15)',
+                          border: i === 0 ? '1px solid rgba(255, 183, 3, 0.4)' : i === 1 ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(205, 127, 50, 0.4)',
+                          textAlign: 'center',
+                          minWidth: '110px'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>
+                          {i === 0 ? '1st Rank' : i === 1 ? '2nd Rank' : '3rd Rank'}
+                        </div>
+                        <div style={{ fontSize: '1.8rem', margin: '4px 0' }}>{logo}</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc' }}>{name}</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace', marginTop: '2px' }}>{pts} pts</div>
                       </div>
-                      <div style={{ fontSize: '1.8rem', margin: '4px 0' }}>{st.teamLogo || '⚽'}</div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f8fafc' }}>{st.teamName}</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace', marginTop: '2px' }}>{st.points} pts</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -596,90 +771,65 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: '#f8fafc' }}>
                   <BarChart3 color="#00e699" /> League Points Table Standings
                 </h2>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
-                  Updated dynamically from match results (Win: 3pts, Draw: 1pt, Loss: 0pt).
+                <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+                  Auto-calculated from completed fixture results. (Win: 3pts, Draw: 1pt, Loss: 0pt)
                 </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.8)', padding: '4px 8px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                {[
-                  { id: 'ALL', label: 'All Fixtures' },
-                  { id: 'SINGLE', label: 'Single Matches' },
-                  { id: 'TWOLEG', label: 'Two-Legged Ties' }
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => setStandingsMode(m.id)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: standingsMode === m.id ? '#00e699' : 'transparent',
-                      color: standingsMode === m.id ? '#0b0f19' : '#94a3b8',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    {m.label}
-                  </button>
-                ))}
               </div>
             </div>
 
+            {/* Standings Table */}
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#64748b', fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                    <th style={{ padding: '14px', textAlign: 'center', width: '60px' }}>Pos</th>
-                    <th style={{ padding: '14px' }}>Franchise Team</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>P</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>W</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>D</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>L</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>GF</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>GA</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>GD</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>PTS</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Form</th>
+                  <tr style={{ borderBottom: '2px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8', fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '12px' }}>Pos</th>
+                    <th style={{ padding: '12px' }}>Franchise Team</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>MP</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>W</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>D</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>L</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>GF</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>GA</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>GD</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#ffb703' }}>Pts</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStandings.map((row, index) => (
-                    <tr key={row.teamId || index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: index === 0 ? 'rgba(255, 183, 3, 0.08)' : index < 3 ? 'rgba(59, 130, 246, 0.04)' : 'transparent' }}>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: 900, color: index === 0 ? '#ffb703' : '#f8fafc' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyCenter: 'center', width: '28px', height: '28px', borderRadius: '50%', background: index === 0 ? '#ffb703' : 'rgba(255, 255, 255, 0.06)', color: index === 0 ? '#000' : '#f8fafc' }}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '1.6rem' }}>{row.teamLogo || '⚽'}</span>
-                        <span style={{ fontSize: '1rem', color: '#f8fafc' }}>{row.teamName}</span>
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#cbd5e1' }}>{row.played}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#00e699', fontWeight: 800 }}>{row.won}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#cbd5e1' }}>{row.drawn}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#f87171' }}>{row.lost}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#cbd5e1' }}>{row.gf}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', color: '#cbd5e1' }}>{row.ga}</td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: 800, color: row.gd > 0 ? '#00e699' : row.gd < 0 ? '#f87171' : '#cbd5e1' }}>
-                        {row.gd > 0 ? `+${row.gd}` : row.gd}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center', fontWeight: 900, fontSize: '1.2rem', color: '#ffb703', fontFamily: 'monospace' }}>
-                        {row.points}
-                      </td>
-                      <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          <span style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'rgba(0, 230, 153, 0.2)', color: '#00e699', fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>W</span>
-                          <span style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'rgba(0, 230, 153, 0.2)', color: '#00e699', fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>W</span>
-                          <span style={{ width: '18px', height: '18px', borderRadius: '4px', background: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>D</span>
-                        </div>
+                  {standings.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+                        No standings data available yet. Complete matches to generate points table.
                       </td>
                     </tr>
-                  ))}
-                  {filteredStandings.length === 0 && (
-                    <tr><td colSpan="11" style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No matches recorded yet.</td></tr>
+                  ) : (
+                    standings.map((st, idx) => {
+                      const teamObj = teams.find(t => t.id === st.id || t.id === st.teamId);
+                      const name = st.name || st.teamName || teamObj?.name || 'Unknown Team';
+                      const logo = st.teamLogo || teamObj?.logo || '⚽';
+                      const pts = st.points ?? st.pts ?? 0;
+                      return (
+                        <tr key={st.id || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', background: idx === 0 ? 'rgba(255, 183, 3, 0.04)' : 'transparent' }}>
+                          <td style={{ padding: '14px 12px', fontWeight: 800, color: idx === 0 ? '#ffb703' : '#94a3b8' }}>
+                            #{idx + 1}
+                          </td>
+                          <td style={{ padding: '14px 12px', fontWeight: 800, color: '#f8fafc' }}>
+                            <span style={{ marginRight: '8px' }}>{logo}</span> {name}
+                          </td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#cbd5e1' }}>{st.mp}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#00e699', fontWeight: 700 }}>{st.w}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#ffb703' }}>{st.d}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#ef4444' }}>{st.l}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#cbd5e1' }}>{st.gf}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', color: '#cbd5e1' }}>{st.ga}</td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 800, color: st.gd > 0 ? '#00e699' : st.gd < 0 ? '#ef4444' : '#94a3b8' }}>
+                            {st.gd > 0 ? `+${st.gd}` : st.gd}
+                          </td>
+                          <td style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 900, color: '#ffb703', fontSize: '1.05rem', fontFamily: 'monospace' }}>
+                            {pts}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -688,369 +838,294 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
         </div>
       )}
 
-      {/* TAB 3: STATISTICS VIEW */}
+      {/* TAB 3: PLAYER STATISTICS VIEW */}
       {rightTab === 'STATS' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Top Leaderboard Highlights Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+          {/* Leaders Showcase Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             
-            {/* Golden Boot Top Scorers */}
-            <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', border: '1px solid rgba(255, 183, 3, 0.25)' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#ffb703', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Flame size={20} /> Golden Boot (Top Goal Scorers)
+            {/* Top Scorer Card */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid rgba(255, 183, 3, 0.3)', background: 'linear-gradient(135deg, rgba(255, 183, 3, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#ffb703', textTransform: 'uppercase', letterSpacing: '0.05em' }}>⚽ Golden Boot Leader</span>
+                <Flame size={18} color="#ffb703" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                {topScorers[0]?.name || combinedPlayerStats[0]?.jerseyName || 'N/A'}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {topScorers.slice(0, 5).map((stat, idx) => (
-                  <div key={stat.playerId || idx} style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 900, color: '#ffb703', width: '20px' }}>#{idx + 1}</span>
-                      <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc' }}>{stat.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Rank #{idx + 1} Candidate</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>
-                      {stat.goals} ⚽
-                    </span>
-                  </div>
-                ))}
-                {topScorers.length === 0 && <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No goal stats recorded yet.</p>}
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace', marginTop: '6px' }}>
+                {topScorers[0]?.goals || combinedPlayerStats[0]?.goals || 0} Goals
               </div>
             </div>
 
-            {/* Playmaker Top Assists */}
-            <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', border: '1px solid rgba(0, 217, 255, 0.25)' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#00d9ff', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Award size={20} /> Playmaker (Top Assists)
+            {/* Playmaker Card */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid rgba(0, 217, 255, 0.3)', background: 'linear-gradient(135deg, rgba(0, 217, 255, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#00d9ff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>👟 Top Assist Provider</span>
+                <Zap size={18} color="#00d9ff" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                {topAssists[0]?.name || 'N/A'}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {topAssists.slice(0, 5).map((stat, idx) => (
-                  <div key={stat.playerId || idx} style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 900, color: '#00d9ff', width: '20px' }}>#{idx + 1}</span>
-                      <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc' }}>{stat.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Playmaker</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#00d9ff', fontFamily: 'monospace' }}>
-                      {stat.assists} 👟
-                    </span>
-                  </div>
-                ))}
-                {topAssists.length === 0 && <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No assist stats recorded yet.</p>}
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00d9ff', fontFamily: 'monospace', marginTop: '6px' }}>
+                {topAssists[0]?.assists || 0} Assists
               </div>
             </div>
 
-            {/* Golden Glove Clean Sheets */}
-            <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px', border: '1px solid rgba(0, 230, 153, 0.25)' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#00e699', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={20} /> Golden Glove (Clean Sheets)
+            {/* Golden Glove Card */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid rgba(0, 230, 153, 0.3)', background: 'linear-gradient(135deg, rgba(0, 230, 153, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#00e699', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🧤 Clean Sheet Champion</span>
+                <ShieldCheck size={18} color="#00e699" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                {cleanSheetsList[0]?.name || 'N/A'}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {cleanSheetsList.slice(0, 5).map((stat, idx) => (
-                  <div key={stat.playerId || idx} style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 900, color: '#00e699', width: '20px' }}>#{idx + 1}</span>
-                      <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f8fafc' }}>{stat.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Goalkeeper</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#00e699', fontFamily: 'monospace' }}>
-                      {stat.cleanSheets} 🧤
-                    </span>
-                  </div>
-                ))}
-                {cleanSheetsList.length === 0 && <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No clean sheet stats recorded yet.</p>}
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00e699', fontFamily: 'monospace', marginTop: '6px' }}>
+                {cleanSheetsList[0]?.cleanSheets || 0} Clean Sheets
               </div>
             </div>
 
           </div>
 
-          {/* Full Player Statistics Table & Filter Bar */}
-          <div className="glass-panel" style={{ padding: '28px', borderRadius: '20px' }}>
-            
-            {/* Controls Bar */}
+          {/* Player Stats Table */}
+          <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
-                Complete Player Performance Directory
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+                Overall Player Performance Leaderboard
               </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <select
+                  className="form-control"
+                  style={{ width: '160px', height: '36px', fontSize: '0.82rem' }}
+                  value={playerSortKey}
+                  onChange={(e) => setPlayerSortKey(e.target.value)}
+                >
+                  <option value="goals">Sort by Goals</option>
+                  <option value="assists">Sort by Assists</option>
+                  <option value="cleanSheets">Sort by Clean Sheets</option>
+                  <option value="saves">Sort by Saves</option>
+                </select>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                {/* Search */}
                 <div style={{ position: 'relative', width: '220px' }}>
-                  <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px', color: '#64748b' }} />
+                  <Search style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', color: '#64748b' }} />
                   <input
                     type="text"
                     placeholder="Search player..."
+                    className="form-control"
+                    style={{ paddingLeft: '32px', height: '36px', fontSize: '0.82rem' }}
                     value={playerSearch}
                     onChange={(e) => setPlayerSearch(e.target.value)}
-                    className="form-control"
-                    style={{ paddingLeft: '36px', height: '36px', fontSize: '0.82rem' }}
                   />
                 </div>
-
-                {/* Team Filter */}
-                <select
-                  value={playerTeamFilter}
-                  onChange={(e) => setPlayerTeamFilter(e.target.value)}
-                  className="form-control"
-                  style={{ width: '160px', height: '36px', fontSize: '0.82rem' }}
-                >
-                  <option value="ALL">All Franchise Teams</option>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-
-                {/* Sort selector */}
-                <select
-                  value={playerSortKey}
-                  onChange={(e) => setPlayerSortKey(e.target.value)}
-                  className="form-control"
-                  style={{ width: '140px', height: '36px', fontSize: '0.82rem' }}
-                >
-                  <option value="goals">Sort: Goals ⚽</option>
-                  <option value="assists">Sort: Assists 👟</option>
-                  <option value="cleanSheets">Sort: Clean Sheets 🧤</option>
-                  <option value="yellowCards">Sort: Yellow Cards 🟨</option>
-                  <option value="redCards">Sort: Red Cards 🟥</option>
-                </select>
               </div>
             </div>
 
-            {/* Stats Table */}
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#64748b', fontSize: '0.78rem', textTransform: 'uppercase' }}>
-                    <th style={{ padding: '14px', width: '50px', textAlign: 'center' }}>#</th>
-                    <th style={{ padding: '14px' }}>Player Name</th>
-                    <th style={{ padding: '14px' }}>Position / Role</th>
-                    <th style={{ padding: '14px' }}>Franchise Team</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Goals ⚽</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Assists 👟</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Clean Sheets 🧤</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Yellow 🟨</th>
-                    <th style={{ padding: '14px', textAlign: 'center' }}>Red 🟥</th>
+                  <tr style={{ borderBottom: '2px solid rgba(255, 255, 255, 0.1)', color: '#94a3b8', fontSize: '0.78rem', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '10px 12px' }}>Player Name</th>
+                    <th style={{ padding: '10px 12px' }}>Franchise Team</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center' }}>Role</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#ffb703' }}>Goals</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#00d9ff' }}>Assists</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#00e699' }}>Clean Sheets</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#a855f7' }}>Saves</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#eab308' }}>🟨</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', color: '#ef4444' }}>🟥</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {combinedPlayerStats.map((p, idx) => (
-                    <tr key={p.id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 800, color: '#94a3b8' }}>
-                        {idx + 1}
+                  {combinedPlayerStats.map(p => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 800, color: '#f8fafc' }}>
+                        {p.jerseyName || p.name}
                       </td>
-                      <td style={{ padding: '14px', fontWeight: 800, color: '#f8fafc' }}>
-                        {p.name}
+                      <td style={{ padding: '12px', color: '#94a3b8' }}>
+                        {p.teamName}
                       </td>
-                      <td style={{ padding: '14px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>
                         {p.role}
                       </td>
-                      <td style={{ padding: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{p.teamLogo}</span>
-                        <span style={{ fontSize: '0.88rem' }}>{p.teamName}</span>
-                      </td>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 900, color: '#ffb703' }}>
                         {p.goals}
                       </td>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 900, color: '#00d9ff', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 900, color: '#00d9ff' }}>
                         {p.assists}
                       </td>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 900, color: '#00e699', fontFamily: 'monospace' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 900, color: '#00e699' }}>
                         {p.cleanSheets}
                       </td>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 800, color: '#eab308' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', fontWeight: 900, color: '#a855f7' }}>
+                        {p.saves}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#eab308' }}>
                         {p.yellowCards}
                       </td>
-                      <td style={{ padding: '14px', textAlign: 'center', fontWeight: 800, color: '#ef4444' }}>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#ef4444' }}>
                         {p.redCards}
                       </td>
                     </tr>
                   ))}
-                  {combinedPlayerStats.length === 0 && (
-                    <tr><td colSpan="9" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No players found.</td></tr>
-                  )}
                 </tbody>
               </table>
             </div>
-
-          </div>
-
-        </div>
-      )}
-
-      {/* TAB 4: LEAGUE NEWS VIEW */}
-      {rightTab === 'NEWS' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px' }}>
-          
-          {/* News Feed */}
-          <div className="glass-panel" style={{ padding: '28px', borderRadius: '20px' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '20px', color: '#f8fafc' }}>Official League News Feed</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {news.map(post => (
-                <div key={post.id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#00e699', margin: 0 }}>{post.title}</h3>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{new Date(post.date).toLocaleDateString()}</span>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', color: '#cbd5e1', lineHeight: 1.6, margin: '8px 0' }}>{post.content}</p>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '10px' }}>Author: {post.author}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Admin Publish News */}
-          {currentUser?.role === 'SUPER_ADMIN' && (
-            <div className="glass-panel" style={{ padding: '28px', borderRadius: '20px', height: 'fit-content' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: '18px', color: '#f8fafc' }}>Publish News Update</h3>
-              <form onSubmit={handlePostNews}>
-                <div className="form-group">
-                  <label className="form-label">Article Headline</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Headline..."
-                    value={newsTitle}
-                    onChange={(e) => setNewsTitle(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Article Body Content</label>
-                  <textarea
-                    className="form-control"
-                    rows={5}
-                    placeholder="Write article details..."
-                    value={newsContent}
-                    onChange={(e) => setNewsContent(e.target.value)}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>
-                  Publish News Post
-                </button>
-              </form>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* NEW FIXTURE MODAL */}
-      {showFixtureModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ borderRadius: '20px' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 900, marginBottom: '16px', color: '#f8fafc' }}>Generate Tournament Fixture</h3>
-            <form onSubmit={handleCreateFixture}>
-              <div className="form-group">
-                <label className="form-label">Home Team</label>
-                <select className="form-control" value={homeTeamId} onChange={(e) => setHomeTeamId(e.target.value)}>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Away Team</label>
-                <select className="form-control" value={awayTeamId} onChange={(e) => setAwayTeamId(e.target.value)}>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Match Format (Legged)</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsLegged(true)}
-                    className={`btn ${isLegged ? 'btn-gold' : 'btn-secondary'}`}
-                    style={{ flex: 1, fontSize: '0.82rem' }}
-                  >
-                    2-Legged (Home & Away)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsLegged(false)}
-                    className={`btn ${!isLegged ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ flex: 1, fontSize: '0.82rem' }}
-                  >
-                    Single Match
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div className="form-group">
-                  <label className="form-label">Venue</label>
-                  <input type="text" className="form-control" value={venue} onChange={(e) => setVenue(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Date/Time</label>
-                  <input type="datetime-local" className="form-control" value={date} onChange={(e) => setDate(e.target.value)} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                <button type="submit" className="btn btn-gold" style={{ flex: 1 }}>Create Fixture</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowFixtureModal(false)}>Cancel</button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* SCORE & EVENTS LOGGER MODAL */}
+      {/* ── MODALS SECTION ─────────────────────────────────────────────────── */}
+
+      {/* MATCH EDIT & EVENT RECORDING MODAL */}
       {selectedFixture && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '650px', borderRadius: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
-                Live Score & Match Event Logger
+          <div className="modal-content" style={{ maxWidth: '680px', borderRadius: '24px', padding: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, margin: 0, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Edit3 color="#ffb703" size={22} /> Live Score & Match Event Logger
               </h3>
               <button onClick={() => setSelectedFixture(null)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                <X size={20} />
+                <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveScore}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '14px', background: 'rgba(15, 23, 42, 0.8)', padding: '18px', borderRadius: '14px', marginBottom: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <label className="form-label">{teams.find(t => t.id === selectedFixture.teamAId || t.id === selectedFixture.homeTeamId)?.name}</label>
-                  <input type="number" className="form-control" style={{ textAlign: 'center', fontSize: '1.8rem', fontWeight: 900, color: '#ffb703' }} value={editHomeScore} onChange={(e) => setEditHomeScore(e.target.value)} min={0} />
+            {/* Scoreboard Header Box */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '14px', background: 'rgba(15, 23, 42, 0.9)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid rgba(255, 183, 3, 0.2)' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Home Team</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc', marginTop: '4px' }}>
+                  {teams.find(t => t.id === selectedFixture.teamAId)?.name || selectedFixture.teamAName}
                 </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#64748b' }}>VS</div>
-                <div style={{ textAlign: 'center' }}>
-                  <label className="form-label">{teams.find(t => t.id === selectedFixture.teamBId || t.id === selectedFixture.awayTeamId)?.name}</label>
-                  <input type="number" className="form-control" style={{ textAlign: 'center', fontSize: '1.8rem', fontWeight: 900, color: '#ffb703' }} value={editAwayScore} onChange={(e) => setEditAwayScore(e.target.value)} min={0} />
+                <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>
+                  {selectedFixture.scoreA || 0}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Final Score</button>
-                <button type="button" className="btn btn-secondary" onClick={() => setSelectedFixture(null)}>Close</button>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 900, color: '#64748b' }}>VS</div>
+                <span className="badge badge-gold" style={{ marginTop: '4px', fontSize: '0.72rem' }}>
+                  {selectedFixture.status}
+                </span>
               </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Away Team</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc', marginTop: '4px' }}>
+                  {teams.find(t => t.id === selectedFixture.teamBId)?.name || selectedFixture.teamBName}
+                </div>
+                <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>
+                  {selectedFixture.scoreB || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* Logged Events List */}
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#f8fafc', marginBottom: '10px' }}>Logged Match Events ({selectedFixture.events?.length || 0})</h4>
+              <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(15, 23, 42, 0.5)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                {(!selectedFixture.events || selectedFixture.events.length === 0) ? (
+                  <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', padding: '12px' }}>No events logged yet for this match.</div>
+                ) : (
+                  selectedFixture.events.map(ev => {
+                    const plyName = ev.player?.jerseyName || ev.player?.user?.name || players.find(p => p.id === ev.playerId)?.name || 'Player';
+                    const icon = ev.type === 'GOAL' ? '⚽ Goal' : ev.type === 'YELLOW_CARD' ? '🟨 Yellow Card' : ev.type === 'RED_CARD' ? '🟥 Red Card' : '🧤 Save';
+                    return (
+                      <div key={ev.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '8px', fontSize: '0.83rem' }}>
+                        <span>
+                          <strong style={{ color: '#ffb703' }}>{ev.minute}'</strong> — {icon}: <strong>{plyName}</strong>
+                          {ev.assistPlayer && <span style={{ color: '#94a3b8' }}> (Assist: {ev.assistPlayer.jerseyName || ev.assistPlayer.user?.name})</span>}
+                        </span>
+                        <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 6px' }}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Log New Event Form */}
+            <form onSubmit={handleAddEvent} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(30, 41, 59, 0.4)', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffb703' }}>Record New Event</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Event Type</label>
+                  <select className="form-control" value={eventType} onChange={(e) => setEventType(e.target.value)}>
+                    <option value="GOAL">⚽ Goal</option>
+                    <option value="YELLOW_CARD">🟨 Yellow Card</option>
+                    <option value="RED_CARD">🟥 Red Card</option>
+                    <option value="GOAL_SAVED">🧤 Goal Saved / Save</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Match Minute</label>
+                  <input type="number" min={1} max={120} className="form-control" value={eventMinute} onChange={(e) => setEventMinute(e.target.value)} required />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Player</label>
+                <select className="form-control" value={eventPlayerId} onChange={(e) => setEventPlayerId(e.target.value)} required>
+                  <option value="">Select Player...</option>
+                  {matchPlayers.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.jerseyName}) — {teams.find(t => t.id === p.soldToTeamId || t.id === p.teamId)?.name || 'Team'}</option>
+                  ))}
+                </select>
+              </div>
+
+              {eventType === 'GOAL' && (
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Assister (Optional)</label>
+                  <select className="form-control" value={eventAssistId} onChange={(e) => setEventAssistId(e.target.value)}>
+                    <option value="">No Assist (Solo / Penalty)</option>
+                    {matchPlayers.filter(p => p.id !== eventPlayerId).map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.jerseyName})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <button type="submit" disabled={eventSubmitting} className="btn btn-gold" style={{ padding: '10px', fontSize: '0.85rem', marginTop: '4px' }}>
+                <Plus size={16} /> Log Event & Auto-Update Score
+              </button>
             </form>
 
-            <hr style={{ borderColor: 'rgba(255, 255, 255, 0.1)', margin: '20px 0' }} />
+            {/* Action Bar */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button type="button" onClick={handleCompleteMatch} className="btn btn-primary" style={{ flex: 1 }}>
+                <CheckCircle2 size={16} /> Mark Match COMPLETED
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setSelectedFixture(null)}>
+                Close
+              </button>
+            </div>
 
-            <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '10px', color: '#f8fafc' }}>Log Individual Player Match Event</h4>
-            <form onSubmit={handleAddEvent} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px' }}>
-              <select className="form-control" value={eventPlayerId} onChange={(e) => setEventPlayerId(e.target.value)}>
-                <option value="">Select Player...</option>
-                {players.map(p => <option key={p.id} value={p.id}>{p.name} ({p.jerseyName})</option>)}
-              </select>
+          </div>
+        </div>
+      )}
 
-              <select className="form-control" value={eventType} onChange={(e) => setEventType(e.target.value)}>
-                <option value="GOAL">⚽ Goal</option>
-                <option value="ASSIST">👟 Assist</option>
-                <option value="YELLOW_CARD">🟨 Yellow Card</option>
-                <option value="RED_CARD">🟥 Red Card</option>
-              </select>
-
-              <button type="submit" className="btn btn-gold">Log Event</button>
-            </form>
-
+      {/* CONFIRM DELETE MATCH MODAL */}
+      {deletingMatch && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '420px', borderRadius: '20px', textAlign: 'center' }}>
+            <AlertTriangle size={48} color="#ef4444" style={{ marginBottom: '12px' }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc', margin: 0 }}>Delete Match Fixture?</h3>
+            <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '8px 0 20px 0' }}>
+              This will permanently delete fixture <strong>{deletingMatch.teamAName} vs {deletingMatch.teamBName}</strong> and all recorded events.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleDeleteMatch} className="btn" style={{ flex: 1, background: '#ef4444', color: '#fff' }}>
+                Confirm Delete
+              </button>
+              <button onClick={() => setDeletingMatch(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1069,6 +1144,19 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
             </div>
 
             <form onSubmit={handleAddMatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Group Selection */}
+              {groups.length > 0 && (
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Assign to Group Stage (Optional)</label>
+                  <select className="form-control" value={addGroupId} onChange={(e) => setAddGroupId(e.target.value)}>
+                    <option value="">No Group (Regular League)</option>
+                    {groups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Team Selection */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '10px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
@@ -1117,7 +1205,7 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
 
               {/* Date / Time */}
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label"><Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />Date & Time (Leg 1)</label>
+                <label className="form-label"><Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />Date & Time</label>
                 <input
                   type="datetime-local"
                   className="form-control"
@@ -1126,19 +1214,6 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                   required
                 />
               </div>
-
-              {addIsLegged && (
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label"><Clock size={14} style={{ display: 'inline', marginRight: '6px' }} />Date & Time (Leg 2 - Return)</label>
-                  <input
-                    type="datetime-local"
-                    className="form-control"
-                    value={addReturnDate}
-                    onChange={(e) => setAddReturnDate(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
 
               {/* Match Format */}
               <div className="form-group" style={{ margin: 0 }}>
@@ -1171,6 +1246,86 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true }) => {
                   Cancel
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* GROUP MANAGEMENT MODAL */}
+      {showGroupModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FolderPlus size={20} color="#00e699" /> Manage Tournament Groups
+              </h3>
+              <button onClick={() => setShowGroupModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Existing Groups List */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94a3b8', marginBottom: '8px' }}>Existing Groups</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                {groups.length === 0 ? (
+                  <div style={{ color: '#64748b', fontSize: '0.82rem', textAlign: 'center', padding: '12px' }}>No groups created yet.</div>
+                ) : (
+                  groups.map(g => (
+                    <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(15,23,42,0.6)', borderRadius: '10px', border: `1px solid ${g.color || '#3b82f6'}44` }}>
+                      <span style={{ fontWeight: 800, color: g.color || '#3b82f6' }}>{g.name} ({g.teamIds?.length || 0} teams)</span>
+                      <button onClick={() => handleDeleteGroup(g.id, g.name)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Create Group Form */}
+            <form onSubmit={handleCreateGroup} style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(30, 41, 59, 0.4)', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#00e699' }}>Create New Group</div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Group Name (e.g. Group A)"
+                  className="form-control"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  required
+                />
+                <input
+                  type="color"
+                  value={newGroupColor}
+                  onChange={(e) => setNewGroupColor(e.target.value)}
+                  style={{ width: '42px', height: '42px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Assign Teams to Group</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+                  {teams.map(t => (
+                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedGroupTeamIds.includes(t.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedGroupTeamIds(prev => [...prev, t.id]);
+                          else setSelectedGroupTeamIds(prev => prev.filter(id => id !== t.id));
+                        }}
+                      />
+                      {t.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-gold" style={{ padding: '10px', fontSize: '0.85rem' }}>
+                <Plus size={16} /> Create Group
+              </button>
             </form>
           </div>
         </div>

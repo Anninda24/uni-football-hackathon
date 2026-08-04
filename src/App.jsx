@@ -262,7 +262,7 @@ function AppContent() {
         );
 
       case 'PUBLIC_LIVE_TOURNAMENT':
-        return <TournamentView defaultTab="MATCHES" />;
+        return <TournamentView defaultTab="MATCHES" readOnly={true} />;
 
       default:
         return <HomePageView onNavigate={setActiveRoute} />;

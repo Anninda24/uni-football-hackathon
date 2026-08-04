@@ -35,15 +35,32 @@ export const SYSTEM_PHASES = {
   }
 };
 
+const API_BASE = 'http://localhost:5000/api';
 const SystemPhaseContext = createContext();
 
 export const SystemPhaseProvider = ({ children }) => {
   const [currentPhaseId, setCurrentPhaseId] = useState(() => {
     const saved = localStorage.getItem('ff_system_phase');
-    // Normalize 'THE_AUCTION' or legacy names to 'AUCTION'
     if (saved === 'THE_AUCTION') return 'AUCTION';
     return saved && SYSTEM_PHASES[saved] ? saved : 'SETUP';
   });
+
+  // Sync with backend API on mount
+  useEffect(() => {
+    const token = localStorage.getItem('ff_jwt_token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    fetch(`${API_BASE}/admin/system-phase`, { headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.currentPhase && SYSTEM_PHASES[data.currentPhase]) {
+          setCurrentPhaseId(data.currentPhase);
+          localStorage.setItem('ff_system_phase', data.currentPhase);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('ff_system_phase', currentPhaseId);
@@ -54,7 +71,20 @@ export const SystemPhaseProvider = ({ children }) => {
     if (SYSTEM_PHASES[normalized]) {
       setCurrentPhaseId(normalized);
       localStorage.setItem('ff_system_phase', normalized);
-      // Also update system_state for backward compatibility with existing views
+
+      // Sync new system phase to backend database
+      const token = localStorage.getItem('ff_jwt_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      fetch(`${API_BASE}/admin/system-phase`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ phase: normalized })
+      })
+      .then(res => res.json())
+      .catch(() => {});
+
       try {
         const existingState = localStorage.getItem('ff_system_state');
         if (existingState) {
