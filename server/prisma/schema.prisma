@@ -24,22 +24,23 @@ model User {
 
 // 2. PlayerProfile Model
 model PlayerProfile {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String        @id @default(uuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   studentId          String
   academicSession    String
   jerseyName         String
   primaryPosition    String
-  secondaryPositions String   @default("") // Comma-separated positions e.g., "RW,CAM"
-  basePrice          Float    @default(0)
+  secondaryPositions String        @default("") // Comma-separated positions e.g., "RW,CAM"
+  basePrice          Float         @default(0)
   categoryId         String?
   tierId             String?
   imageUrl           String?
   cloudPublicId      String?
-  status             String   @default("REGISTERED") // REGISTERED | SOLD | UNSOLD
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  status             String        @default("REGISTERED") // REGISTERED | SOLD | UNSOLD
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  playerStats        PlayerStats[]
 }
 
 // 3. Team Model
@@ -88,34 +89,47 @@ model AuctionLedger {
   type      String   @default("NORMAL") // NORMAL | BLIND
 }
 
-// 8. Match Model
+// 8. Match Model — now with full two-legged aggregate support
 model Match {
-  id            String        @id @default(uuid())
-  teamAId       String
-  teamBId       String
-  scoreA        Int           @default(0)
-  scoreB        Int           @default(0)
-  isTwoLegged   Boolean       @default(false)
-  leg1Score     String?
-  leg2Score     String?
-  status        String        @default("UPCOMING") // UPCOMING | LIVE | COMPLETED
-  scheduledTime DateTime?
-  venue         String?
-  stats         PlayerStats[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  teamAId         String
+  teamBId         String
+  teamAName       String        @default("")
+  teamBName       String        @default("")
+  scoreA          Int           @default(0)
+  scoreB          Int           @default(0)
+  isTwoLegged     Boolean       @default(false)
+  leg             Int           @default(1)   // 1 or 2
+  pairedMatchId   String?                     // Links leg 1 & leg 2
+  leg1ScoreA      Int           @default(0)
+  leg1ScoreB      Int           @default(0)
+  leg2ScoreA      Int           @default(0)
+  leg2ScoreB      Int           @default(0)
+  aggScoreA       Int           @default(0)
+  aggScoreB       Int           @default(0)
+  status          String        @default("UPCOMING") // UPCOMING | LIVE | COMPLETED | CANCELLED
+  scheduledTime   DateTime?
+  venue           String?
+  stats           PlayerStats[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
-// 9. PlayerStats Model
+// 9. PlayerStats Model — per-match individual stats
 model PlayerStats {
-  id          String   @id @default(uuid())
-  playerId    String
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  goals       Int      @default(0)
-  assists     Int      @default(0)
-  cleanSheets  Int      @default(0)
-  yellowCards Int      @default(0)
-  redCards    Int      @default(0)
-  createdAt   DateTime @default(now())
+  id            String        @id @default(uuid())
+  playerId      String
+  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId       String
+  match         Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId        String
+  goals         Int           @default(0)
+  assists       Int           @default(0)
+  cleanSheets   Int           @default(0)
+  yellowCards   Int           @default(0)
+  redCards      Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([playerId, matchId])
 }
