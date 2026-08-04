@@ -172,21 +172,21 @@ function AppContent() {
       case 'SUB_ADMIN_MATCHES':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="MATCHES" />
+            <TournamentView defaultTab="MATCHES" showTabs={false} />
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STANDINGS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="STANDINGS" />
+            <TournamentView defaultTab="STANDINGS" showTabs={false} />
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STATISTICS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TeamPerformanceStatsView />
+            <TournamentView defaultTab="STATS" showTabs={false} />
           </ProtectedRoute>
         );
 
@@ -262,11 +262,7 @@ function AppContent() {
         );
 
       case 'PUBLIC_LIVE_TOURNAMENT':
-        return (
-          <ProtectedRoute allowedPhases={['TOURNAMENT']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="MATCHES" />
-          </ProtectedRoute>
-        );
+        return <TournamentView defaultTab="MATCHES" />;
 
       default:
         return <HomePageView onNavigate={setActiveRoute} />;

@@ -22,8 +22,7 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
       id: 'PUBLIC_LIVE_TOURNAMENT',
       label: 'Live Tournament',
       icon: Trophy,
-      enabled: isTournament,
-      phaseNotice: 'Active in Phase 4: Tournament'
+      enabled: true
     }
   ];
 

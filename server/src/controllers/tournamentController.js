@@ -8,13 +8,17 @@ import { prisma } from '../config/db.js';
 // @route POST /api/tournament/matches
 export const createMatch = async (req, res) => {
   try {
-    const { teamAId, teamBId, teamAName, teamBName, scheduledTime, venue, isTwoLegged } = req.body;
+    const { teamAId, teamBId, teamAName, teamBName, scheduledTime, returnLegTime, isTwoLegged } = req.body;
 
     if (!teamAId || !teamBId) {
       return res.status(400).json({ success: false, message: 'teamAId and teamBId are required' });
     }
 
-    const match = await prisma.match.create({
+    if (isTwoLegged && !returnLegTime) {
+      return res.status(400).json({ success: false, message: 'Return leg date is required for two-legged matches' });
+    }
+
+    let match = await prisma.match.create({
       data: {
         teamAId,
         teamBId,
@@ -22,7 +26,6 @@ export const createMatch = async (req, res) => {
         teamBName: teamBName || '',
         isTwoLegged: !!isTwoLegged,
         scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
-        venue: venue || null,
         leg: 1,
         status: 'UPCOMING'
       }
@@ -40,8 +43,7 @@ export const createMatch = async (req, res) => {
           isTwoLegged: true,
           leg: 2,
           pairedMatchId: match.id,
-          scheduledTime: null,
-          venue: null,
+          scheduledTime: returnLegTime ? new Date(returnLegTime) : null,
           status: 'UPCOMING'
         }
       });

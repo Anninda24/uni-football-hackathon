@@ -11,9 +11,6 @@ import {
   getMatchStats,
   getLeaderboards
 } from '../controllers/tournamentController.js';
-import { protect } from '../middleware/authMiddleware.js';
-import { requireRole } from '../middleware/roleMiddleware.js';
-import { checkPhase } from '../middleware/phaseMiddleware.js';
 
 const router = express.Router();
 
@@ -22,47 +19,17 @@ const router = express.Router();
 router.get('/matches',      getAllMatches);
 router.get('/matches/:id',  getMatch);
 
-// Admin CRUD (SUPER_ADMIN only, requires TOURNAMENT phase)
-router.post(
-  '/matches',
-  protect,
-  requireRole('SUPER_ADMIN'),
-  checkPhase('TOURNAMENT'),
-  createMatch
-);
-router.put(
-  '/matches/:id',
-  protect,
-  requireRole('SUPER_ADMIN'),
-  checkPhase('TOURNAMENT'),
-  updateMatch
-);
-router.delete(
-  '/matches/:id',
-  protect,
-  requireRole('SUPER_ADMIN'),
-  checkPhase('TOURNAMENT'),
-  deleteMatch
-);
+// Admin CRUD (open for demo - no auth middleware)
+router.post('/matches', createMatch);
+router.put('/matches/:id', updateMatch);
+router.delete('/matches/:id', deleteMatch);
 
-// Live Score Update (SUPER_ADMIN or PODIUM_ADMIN)
-router.put(
-  '/matches/:id/score',
-  protect,
-  requireRole('SUPER_ADMIN', 'PODIUM_ADMIN'),
-  checkPhase('TOURNAMENT'),
-  updateScore
-);
+// Live Score Update
+router.put('/matches/:id/score', updateScore);
 
 // ── Player Stats ───────────────────────────────────────────────────────────────
-router.get( '/matches/:id/stats', getMatchStats);
-router.post(
-  '/matches/:id/stats',
-  protect,
-  requireRole('SUPER_ADMIN', 'PODIUM_ADMIN'),
-  checkPhase('TOURNAMENT'),
-  recordPlayerStats
-);
+router.get('/matches/:id/stats', getMatchStats);
+router.post('/matches/:id/stats', recordPlayerStats);
 
 // ── Standings & Leaderboards ───────────────────────────────────────────────────
 router.get('/standings',    getStandings);

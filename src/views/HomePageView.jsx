@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
 import { useSystemPhase } from '../context/SystemPhaseContext';
+import { useTournament } from '../hooks/useTournament';
 import {
   Trophy,
   Gavel,
@@ -21,13 +22,17 @@ import {
   HelpCircle,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Flame,
+  BarChart3
 } from 'lucide-react';
 
 export const HomePageView = ({ onNavigate }) => {
   const { teams, players, managers } = useSystem();
   const { currentPhase, currentPhaseId } = useSystemPhase();
+  const { matches: backendMatches, standings: backendStandings, leaderboards } = useTournament();
   const [openFaq, setOpenFaq] = useState(null);
+  const [landingTab, setLandingTab] = useState('MATCHES');
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -191,19 +196,17 @@ export const HomePageView = ({ onNavigate }) => {
                 <span>Live Auction</span>
               </button>
             )}
-            {currentPhaseId === 'TOURNAMENT' && (
-              <button
-                onClick={() => onNavigate && onNavigate('PUBLIC_LIVE_TOURNAMENT')}
-                className="btn btn-primary"
-                style={{ padding: '14px 28px', fontSize: '0.95rem', borderRadius: '12px' }}
-              >
-                <Trophy style={{ width: '18px', height: '18px' }} />
-                <span>Live Tournament</span>
-              </button>
-            )}
+            <button
+              onClick={() => onNavigate && onNavigate('PUBLIC_LIVE_TOURNAMENT')}
+              className="btn btn-primary"
+              style={{ padding: '14px 28px', fontSize: '0.95rem', borderRadius: '12px' }}
+            >
+              <Trophy style={{ width: '18px', height: '18px' }} />
+              <span>Live Tournament</span>
+            </button>
             <button
               onClick={() => onNavigate && onNavigate('PUBLIC_SCHEDULE')}
-              className="btn btn-primary"
+              className="btn btn-secondary"
               style={{ padding: '14px 28px', fontSize: '0.95rem', borderRadius: '12px' }}
             >
               <Calendar style={{ width: '18px', height: '18px' }} />
@@ -273,6 +276,253 @@ export const HomePageView = ({ onNavigate }) => {
             </div>
           );
         })}
+      </section>
+
+      {/* Live Tournament Showcase Section on Landing Page (Matches, Standings & Statistics) */}
+      <section className="glass-panel" style={{ padding: '36px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.25)', background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '20px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontSize: '0.78rem', fontWeight: 800, marginBottom: '8px' }}>
+                <Trophy style={{ width: '14px', height: '14px' }} /> LIVE TOURNAMENT HUB
+              </div>
+              <h2 style={{ fontSize: '1.9rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                Matches, Standings & Statistics
+              </h2>
+            </div>
+
+            {/* Tab Selectors */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.8)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <button
+                onClick={() => setLandingTab('MATCHES')}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: landingTab === 'MATCHES' ? '#3b82f6' : 'transparent',
+                  color: landingTab === 'MATCHES' ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Calendar style={{ width: '16px', height: '16px' }} />
+                <span>Matches</span>
+              </button>
+
+              <button
+                onClick={() => setLandingTab('STANDINGS')}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: landingTab === 'STANDINGS' ? '#00e699' : 'transparent',
+                  color: landingTab === 'STANDINGS' ? '#0b0f19' : '#94a3b8',
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <BarChart3 style={{ width: '16px', height: '16px' }} />
+                <span>Standings</span>
+              </button>
+
+              <button
+                onClick={() => setLandingTab('STATS')}
+                style={{
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: landingTab === 'STATS' ? '#ffb703' : 'transparent',
+                  color: landingTab === 'STATS' ? '#0b0f19' : '#94a3b8',
+                  fontSize: '0.86rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Flame style={{ width: '16px', height: '16px' }} />
+                <span>Statistics</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab 1: Matches Preview */}
+        {landingTab === 'MATCHES' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {backendMatches.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '36px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '16px', border: '1px dashed rgba(255, 255, 255, 0.1)' }}>
+                <Clock style={{ width: '32px', height: '32px', color: '#64748b', marginBottom: '8px' }} />
+                <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>No matches currently scheduled. Check full schedule or live tournament hub.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+                {backendMatches.slice(0, 4).map(fix => {
+                  const homeTeam = teams.find(t => t.id === fix.teamAId || t.id === fix.homeTeamId);
+                  const awayTeam = teams.find(t => t.id === fix.teamBId || t.id === fix.awayTeamId);
+                  return (
+                    <div key={fix.id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '12px', background: fix.status === 'COMPLETED' ? 'rgba(0, 230, 153, 0.15)' : fix.status === 'LIVE' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.15)', color: fix.status === 'COMPLETED' ? '#00e699' : fix.status === 'LIVE' ? '#f87171' : '#60a5fa' }}>
+                          {fix.status || 'SCHEDULED'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          {fix.scheduledTime ? new Date(fix.scheduledTime).toLocaleDateString() : 'TBD'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '1.8rem' }}>{homeTeam?.logo || '⚽'}</span>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{homeTeam?.name || fix.teamAName || 'Home Team'}</span>
+                        </div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>
+                          {fix.scoreA ?? 0} - {fix.scoreB ?? 0}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{awayTeam?.name || fix.teamBName || 'Away Team'}</span>
+                          <span style={{ fontSize: '1.8rem' }}>{awayTeam?.logo || '⚽'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Standings Preview */}
+        {landingTab === 'STANDINGS' && (
+          <div style={{ overflowX: 'auto', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                  <th style={{ padding: '12px' }}>Pos</th>
+                  <th style={{ padding: '12px' }}>Franchise Team</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>P</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>W</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>D</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>L</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>GD</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(backendStandings.length > 0 ? backendStandings : teams.map((t, idx) => ({ teamId: t.id, teamName: t.name, teamLogo: t.logo || '⚽', played: 0, won: 0, drawn: 0, lost: 0, gd: 0, points: 0 }))).slice(0, 6).map((row, index) => (
+                  <tr key={row.teamId || index} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: index === 0 ? 'rgba(255, 183, 3, 0.08)' : 'transparent' }}>
+                    <td style={{ padding: '12px', fontWeight: 800, color: index === 0 ? '#ffb703' : '#f8fafc' }}>
+                      {index + 1}
+                    </td>
+                    <td style={{ padding: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>{row.teamLogo || '⚽'}</span>
+                      <span>{row.teamName}</span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>{row.played}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: '#00e699', fontWeight: 700 }}>{row.won}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>{row.drawn}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: '#f87171' }}>{row.lost}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontWeight: 700, color: '#f8fafc' }}>{row.gd > 0 ? `+${row.gd}` : row.gd}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontWeight: 900, fontSize: '1.05rem', color: '#ffb703', fontFamily: 'monospace' }}>{row.points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tab 3: Statistics Preview */}
+        {landingTab === 'STATS' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            {/* Top Scorers Card */}
+            <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255, 183, 3, 0.2)', borderRadius: '16px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#ffb703', fontWeight: 800, fontSize: '0.95rem' }}>
+                <Flame style={{ width: '18px', height: '18px' }} />
+                <span>Golden Boot Top Scorers</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(leaderboards.topScorers || []).slice(0, 3).map((s, idx) => (
+                  <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, color: '#ffb703' }}>#{idx + 1}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>{s.name || `Player ${idx+1}`}</span>
+                    </div>
+                    <span style={{ fontWeight: 900, color: '#ffb703', fontFamily: 'monospace' }}>{s.goals || 0} ⚽</span>
+                  </div>
+                ))}
+                {(!leaderboards.topScorers || leaderboards.topScorers.length === 0) && (
+                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>No goal stats recorded yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Top Assists Card */}
+            <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(0, 217, 255, 0.2)', borderRadius: '16px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#00d9ff', fontWeight: 800, fontSize: '0.95rem' }}>
+                <Award style={{ width: '18px', height: '18px' }} />
+                <span>Playmaker Top Assists</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(leaderboards.topAssists || []).slice(0, 3).map((s, idx) => (
+                  <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, color: '#00d9ff' }}>#{idx + 1}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>{s.name || `Player ${idx+1}`}</span>
+                    </div>
+                    <span style={{ fontWeight: 900, color: '#00d9ff', fontFamily: 'monospace' }}>{s.assists || 0} 👟</span>
+                  </div>
+                ))}
+                {(!leaderboards.topAssists || leaderboards.topAssists.length === 0) && (
+                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>No assist stats recorded yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Golden Glove Card */}
+            <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(0, 230, 153, 0.2)', borderRadius: '16px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#00e699', fontWeight: 800, fontSize: '0.95rem' }}>
+                <Shield style={{ width: '18px', height: '18px' }} />
+                <span>Golden Glove Clean Sheets</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(leaderboards.cleanSheets || []).slice(0, 3).map((s, idx) => (
+                  <div key={s.playerId || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, color: '#00e699' }}>#{idx + 1}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>{s.name || `Keeper ${idx+1}`}</span>
+                    </div>
+                    <span style={{ fontWeight: 900, color: '#00e699', fontFamily: 'monospace' }}>{s.cleanSheets || 0} 🧤</span>
+                  </div>
+                ))}
+                {(!leaderboards.cleanSheets || leaderboards.cleanSheets.length === 0) && (
+                  <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>No clean sheet stats recorded yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button
+            onClick={() => onNavigate && onNavigate('PUBLIC_LIVE_TOURNAMENT')}
+            className="btn btn-primary"
+            style={{ padding: '12px 28px', fontSize: '0.9rem', borderRadius: '12px' }}
+          >
+            <span>Explore Full Tournament Hub</span>
+            <ArrowRight style={{ width: '16px', height: '16px' }} />
+          </button>
+        </div>
       </section>
 
       {/* Key Tournament Features Section */}
