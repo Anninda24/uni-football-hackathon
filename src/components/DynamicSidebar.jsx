@@ -43,10 +43,10 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
 
       case 'SUB_ADMIN':
         return [
-          { id: 'SUPER_ADMIN_DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'SUPER_ADMIN_AUCTION_RULES', label: 'Auction Rules', icon: Gavel },
-          { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Player Pool and Category', icon: Users },
-          { id: 'SUPER_ADMIN_TEAM_MANAGEMENT', label: 'Team Management', icon: Trophy }
+          { id: 'SUB_ADMIN_TEAMS', label: 'Teams', icon: Trophy },
+          { id: 'SUB_ADMIN_MATCHES', label: 'Matches', icon: Calendar },
+          { id: 'SUB_ADMIN_STANDINGS', label: 'Standings', icon: TrendingUp },
+          { id: 'SUB_ADMIN_STATISTICS', label: 'Statistics', icon: Award }
         ];
 
       case 'ICON_PLAYER':

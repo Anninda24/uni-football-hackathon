@@ -181,6 +181,26 @@ export const HomePageView = ({ onNavigate }) => {
 
           {/* Hero Action Buttons */}
           <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {currentPhaseId === 'AUCTION' && (
+              <button
+                onClick={() => onNavigate && onNavigate('PUBLIC_LIVE_AUCTION')}
+                className="btn btn-gold"
+                style={{ padding: '14px 28px', fontSize: '0.95rem', borderRadius: '12px' }}
+              >
+                <Radio style={{ width: '18px', height: '18px' }} />
+                <span>Live Auction</span>
+              </button>
+            )}
+            {currentPhaseId === 'TOURNAMENT' && (
+              <button
+                onClick={() => onNavigate && onNavigate('PUBLIC_LIVE_TOURNAMENT')}
+                className="btn btn-primary"
+                style={{ padding: '14px 28px', fontSize: '0.95rem', borderRadius: '12px' }}
+              >
+                <Trophy style={{ width: '18px', height: '18px' }} />
+                <span>Live Tournament</span>
+              </button>
+            )}
             <button
               onClick={() => onNavigate && onNavigate('PUBLIC_SCHEDULE')}
               className="btn btn-primary"

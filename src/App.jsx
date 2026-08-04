@@ -36,6 +36,7 @@ import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
 import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 import { SettingsTabbedView } from './views/SettingsTabbedView';
 import { PlayerProfileView } from './views/PlayerProfileView';
+import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -58,7 +59,7 @@ function AppContent() {
       case 'SUPER_ADMIN':
         return 'SUPER_ADMIN_DASHBOARD';
       case 'SUB_ADMIN':
-        return 'SUPER_ADMIN_DASHBOARD';
+        return 'SUB_ADMIN_TEAMS';
       case 'ICON_PLAYER':
         return 'CAPTAIN_DASHBOARD';
       case 'PLAYER':
@@ -157,6 +158,35 @@ function AppContent() {
         return (
           <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
             <LiveAuctionView />
+          </ProtectedRoute>
+        );
+
+      // --- SUB ADMIN ROUTES ---
+      case 'SUB_ADMIN_TEAMS':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <FranchiseTeamView />
+          </ProtectedRoute>
+        );
+
+      case 'SUB_ADMIN_MATCHES':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <TournamentView defaultTab="MATCHES" />
+          </ProtectedRoute>
+        );
+
+      case 'SUB_ADMIN_STANDINGS':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <TournamentView defaultTab="STANDINGS" />
+          </ProtectedRoute>
+        );
+
+      case 'SUB_ADMIN_STATISTICS':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <TeamPerformanceStatsView />
           </ProtectedRoute>
         );
 
