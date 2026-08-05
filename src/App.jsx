@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SystemPhaseProvider, useSystemPhase } from './context/SystemPhaseContext';
 import { SystemProvider, useSystem } from './context/SystemContext';
+import { Lock } from 'lucide-react';
 
 // Layout & Components
 import { Header } from './components/Header';
@@ -41,7 +42,7 @@ import { TournamentSettingsView } from './views/TournamentSettingsView';
 
 function AppContent() {
   const { currentUser } = useAuth();
-  const { isAuction, isTournament } = useSystemPhase();
+  const { currentPhase, isAuction, isTournament } = useSystemPhase();
 
   // Active Route state
   const [activeRoute, setActiveRoute] = useState('DEFAULT');
@@ -80,14 +81,34 @@ function AppContent() {
   // Sync active route when user role changes
   useEffect(() => {
     if (activeRoute === 'DEFAULT') return;
-    // Reset to role's default if switching away from spectator to dashboard role
     if (currentUser.role === 'SPECTATOR' && !effectiveRoute.startsWith('PUBLIC_')) {
       setActiveRoute('PUBLIC_HOME');
     }
   }, [currentUser.role]);
 
+  // Sub-Admin Phase 4 Lock Screen (Unlocked strictly during Phase 4: Tournament for SUB_ADMIN)
+  const renderSubAdminLockedScreen = () => (
+    <div className="glass-panel" style={{ textAlign: 'center', padding: '64px 32px', borderRadius: '24px', maxWidth: '680px', margin: '40px auto', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+      <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', border: '2px solid rgba(239, 68, 68, 0.4)' }}>
+        <Lock size={32} color="#f87171" />
+      </div>
+      <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#f8fafc', margin: 0 }}>Sub-Admin Dashboard Locked</h2>
+      <p style={{ color: '#94a3b8', fontSize: '1rem', margin: '12px 0 24px 0', lineHeight: 1.6 }}>
+        The tournament has not started yet. Sub-Admin tournament operations will automatically unlock when <strong>Phase 4: Tournament</strong> is activated by the Super Admin.
+      </p>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 18px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', fontSize: '0.85rem', fontWeight: 800 }}>
+        Current League Phase: {currentPhase.label}
+      </div>
+    </div>
+  );
+
   // View Resolver strictly mapping routes to components
   const renderRouteView = () => {
+    // Check if Sub-Admin is attempting to access Sub-Admin features before Phase 4 (Tournament)
+    if (currentUser.role === 'SUB_ADMIN' && !isTournament && effectiveRoute.startsWith('SUB_ADMIN_')) {
+      return renderSubAdminLockedScreen();
+    }
+
     switch (effectiveRoute) {
       // --- SUPER ADMIN ROUTES ---
       case 'SUPER_ADMIN_DASHBOARD':
@@ -107,58 +128,21 @@ function AppContent() {
       case 'SUPER_ADMIN_PLAYER_POOL_CATEGORY':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerPoolTabbedView initialEditPlayer={editPlayerTarget} />
+            <PlayerPoolTabbedView />
           </ProtectedRoute>
         );
 
       case 'SUPER_ADMIN_TEAM_MANAGEMENT':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TeamManagementTabbedView initialEditManager={editManagerTarget} />
+            <TeamManagementTabbedView />
           </ProtectedRoute>
         );
 
       case 'SUPER_ADMIN_SETTINGS':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <SettingsTabbedView onOpenNukeModal={() => setShowNukeModal(true)} />
-          </ProtectedRoute>
-        );
-
-      // --- PLAYER ROUTES ---
-      case 'PLAYER_MY_PROFILE':
-        return (
-          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerProfileView />
-          </ProtectedRoute>
-        );
-
-      case 'PLAYER_MY_TEAM':
-        return (
-          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN', 'TEAM_MANAGER']} onUnauthorizedRedirect={setActiveRoute}>
-            <MyTeamInfoView />
-          </ProtectedRoute>
-        );
-
-      // --- TEAM MANAGER ROUTES ---
-      case 'MANAGER_MY_PROFILE':
-        return (
-          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <ManagerManagementView />
-          </ProtectedRoute>
-        );
-
-      case 'MANAGER_MY_TEAM':
-        return (
-          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <MyTeamInfoView />
-          </ProtectedRoute>
-        );
-
-      case 'MANAGER_AUCTION':
-        return (
-          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <LiveAuctionView />
+            <SettingsTabbedView />
           </ProtectedRoute>
         );
 
@@ -166,35 +150,35 @@ function AppContent() {
       case 'SUB_ADMIN_TEAMS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <FranchiseTeamView />
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <FranchiseTeamView />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_MATCHES':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="MATCHES" showTabs={false} />
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="MATCHES" showTabs={false} />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STANDINGS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="STANDINGS" showTabs={false} />
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="STANDINGS" showTabs={false} />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STATISTICS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentView defaultTab="STATS" showTabs={false} />
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="STATS" showTabs={false} />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_SETTINGS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <TournamentSettingsView />
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentSettingsView />}
           </ProtectedRoute>
         );
 
@@ -249,12 +233,52 @@ function AppContent() {
           </ProtectedRoute>
         );
 
+      // --- PLAYER ROUTES ---
+      case 'PLAYER_MY_PROFILE':
+        return (
+          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerProfileView />
+          </ProtectedRoute>
+        );
+
+      case 'PLAYER_MY_TEAM':
+        return (
+          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      // --- TEAM MANAGER ROUTES ---
+      case 'MANAGER_MY_PROFILE':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerProfileView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_MY_TEAM':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_AUCTION':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <LiveAuctionView />
+          </ProtectedRoute>
+        );
+
       // --- PUBLIC / SPECTATOR ROUTES ---
       case 'PUBLIC_HOME':
         return <HomePageView onNavigate={setActiveRoute} />;
 
       case 'PUBLIC_LOGIN':
-        return <LoginRegisterView onLoginSuccess={() => setActiveRoute('DEFAULT')} />;
+        return <LoginRegisterView initialTab="LOGIN" onLoginSuccess={() => setActiveRoute('DEFAULT')} />;
+
+      case 'PUBLIC_REGISTER':
+        return <LoginRegisterView initialTab="REGISTER" onLoginSuccess={() => setActiveRoute('DEFAULT')} />;
 
       case 'PUBLIC_RULEBOOK':
         return <RulesCategoriesOverviewView />;
@@ -277,7 +301,6 @@ function AppContent() {
     }
   };
 
-  // Determine whether to render Public Landing Page Layout or Dashboard Shell Layout
   const isPublicLayout = currentUser.role === 'SPECTATOR' || effectiveRoute.startsWith('PUBLIC_');
 
   if (isPublicLayout) {
@@ -290,21 +313,16 @@ function AppContent() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-dark, #0b0f19)', color: 'var(--text-main, #f8fafc)' }}>
-      {/* Dynamic Top Header */}
       <Header activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-      {/* 2-Column Shell Container */}
       <div style={{ flex: 1, display: 'flex', minHeight: 'calc(100vh - 70px)' }}>
-        {/* Role-Specific Dynamic Sidebar */}
         <DynamicSidebar activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-        {/* Main Workspace Workspace Area */}
         <main style={{ flex: 1, padding: '28px', width: '100%', maxWidth: '1600px', margin: '0 auto', overflowX: 'hidden' }}>
           {renderRouteView()}
         </main>
       </div>
 
-      {/* Command Palette Modal */}
       <CommandPalette
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
@@ -313,10 +331,8 @@ function AppContent() {
         onEditManager={(m) => setEditManagerTarget(m)}
       />
 
-      {/* Nuke Modal */}
       {showNukeModal && <NukeModal onClose={() => setShowNukeModal(false)} />}
 
-      {/* Toast System */}
       <NotificationsToast />
     </div>
   );

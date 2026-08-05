@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSystemPhase } from '../context/SystemPhaseContext';
 import { useSystem } from '../context/SystemContext';
-import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2, Lock, LogIn } from 'lucide-react';
 
-export function LoginRegisterView({ onLoginSuccess }) {
+export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
   const { login, PRESET_ACCOUNTS, setCurrentUser } = useAuth();
-  const { currentPhase } = useSystemPhase();
+  const { currentPhase, isRegistration } = useSystemPhase();
   const { systemState, players, setPlayers, addNotification } = useSystem();
-  const [activeTab, setActiveTab] = useState('LOGIN');
+  
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (initialTab === 'REGISTER' && !isRegistration) {
+      setActiveTab('LOGIN');
+    } else {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isRegistration]);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +45,7 @@ export function LoginRegisterView({ onLoginSuccess }) {
     setTimeout(() => {
       setRegImageUrl(URL.createObjectURL(file));
       setUploadingImage(false);
-      addNotification('success', 'Image Uploaded', 'Profile photo attached.');
+      addNotification('success', 'Image Uploaded', 'Optional profile photo attached.');
     }, 600);
   };
 
@@ -68,15 +77,18 @@ export function LoginRegisterView({ onLoginSuccess }) {
   const handleRegister = (e) => {
     e.preventDefault();
 
-    if (!regName || !regStudentId || !regEmail || !regPassword || !regSession || !regJerseyName || !regJerseyNumber || !regPrimaryPosition) {
-      addNotification('error', 'Missing Fields', 'Please complete all required fields.');
+    if (!isRegistration) {
+      addNotification('error', 'Registration Closed', 'Player registration is only active during Phase 2: Registration.');
       return;
     }
 
-    if (!regImageUrl) {
-      addNotification('error', 'Profile Image Required', 'You must upload a profile photo to complete registration.');
+    if (!regName || !regStudentId || !regEmail || !regPassword || !regSession || !regJerseyName || !regJerseyNumber || !regPrimaryPosition) {
+      addNotification('error', 'Missing Fields', 'Please complete all required text fields.');
       return;
     }
+
+    // Image upload is OPTIONAL — fallback to default avatar
+    const defaultAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
     const newPlayer = {
       id: 'ply-' + Date.now(),
@@ -89,7 +101,7 @@ export function LoginRegisterView({ onLoginSuccess }) {
       jerseyNumber: regJerseyNumber,
       primaryPosition: regPrimaryPosition,
       secondaryPositions: regSecondaryPositions,
-      imageUrl: regImageUrl,
+      imageUrl: regImageUrl || defaultAvatar,
       cloudPublicId: 'cld_ply_' + Date.now(),
       categoryId: '',
       basePrice: 0,
@@ -117,408 +129,265 @@ export function LoginRegisterView({ onLoginSuccess }) {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto' }}>
-      {/* Tab Selectors */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', justifyContent: 'center' }}>
-        <button
-          onClick={() => setActiveTab('LOGIN')}
-          style={{
-            padding: '12px 24px',
-            borderRadius: '10px',
-            border: 'none',
-            background: activeTab === 'LOGIN' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(30, 41, 59, 0.6)',
-            color: activeTab === 'LOGIN' ? '#fff' : '#94a3b8',
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <User style={{ width: '18px', height: '18px' }} />
-          <span>Portal Login</span>
-        </button>
+    <div style={{ maxWidth: '480px', margin: '40px auto', width: '100%' }}>
+      {/* Auth Modal Container */}
+      <div className="glass-panel" style={{ padding: '36px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        
+        {/* Navigation Tabs Header */}
+        <div style={{ display: 'flex', gap: '8px', background: 'rgba(15, 23, 42, 0.6)', padding: '6px', borderRadius: '12px', marginBottom: '28px' }}>
+          <button
+            onClick={() => setActiveTab('LOGIN')}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: 'none',
+              background: activeTab === 'LOGIN' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
+              color: activeTab === 'LOGIN' ? '#60a5fa' : '#94a3b8',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogIn size={16} />
+            <span>Login Portal</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('REGISTER')}
-          style={{
-            padding: '12px 24px',
-            borderRadius: '10px',
-            border: 'none',
-            background: activeTab === 'REGISTER' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(30, 41, 59, 0.6)',
-            color: activeTab === 'REGISTER' ? '#fff' : '#94a3b8',
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <UserPlus style={{ width: '18px', height: '18px' }} />
-          <span>Player Registration</span>
-        </button>
-      </div>
-
-      {activeTab === 'LOGIN' ? (
-        <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', padding: '32px' }}>
-          <h2 style={{ fontSize: '1.4rem', color: '#f8fafc', marginBottom: '8px' }}>
-            Platform Portal Access
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>
-            Enter your credentials or select a quick demo persona to access your workspace.
-          </p>
-
-          {/* Quick Preset Selector */}
-          <div style={{ marginBottom: '28px' }}>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px' }}>
-              Instant Persona Login
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
-              {Object.entries(PRESET_ACCOUNTS).filter(([k]) => k !== 'SPECTATOR').map(([roleKey, acc]) => (
-                <button
-                  key={roleKey}
-                  onClick={() => handlePresetSelect(roleKey)}
-                  style={{
-                    padding: '14px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    color: '#f8fafc',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}
-                >
-                  <div style={{ fontSize: '1.4rem' }}>{acc.avatar}</div>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 700 }}>{acc.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 600 }}>
-                    {roleKey.replace('_', ' ')}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '24px' }}>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Username or Email</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. admin or admin@football.com"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff'
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  marginTop: '8px'
-                }}
-              >
-                Log In to Workspace
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : (
-        <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', padding: '32px' }}>
-          <h2 style={{ fontSize: '1.4rem', color: '#f8fafc', marginBottom: '8px' }}>
-            Player Profile Registration
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>
-            Register your university athlete profile for the active draft pool. (Active System Phase: <strong style={{ color: currentPhase.badgeColor }}>{currentPhase.label}</strong>)
-          </p>
-
-          {regSuccess ? (
-            <div style={{ textAlign: 'center', padding: '32px' }}>
-              <CheckCircle2 style={{ width: '48px', height: '48px', color: '#22c55e', margin: '0 auto 16px' }} />
-              <h3 style={{ fontSize: '1.2rem', color: '#f8fafc', marginBottom: '8px' }}>Registration Submitted!</h3>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Redirecting to your Player Dashboard...</p>
-            </div>
-          ) : (
-            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Julian Sterling"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Student ID *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ST-2026-901"
-                    value={regStudentId}
-                    onChange={(e) => setRegStudentId(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>University Email *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="julian@student.edu"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password *</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Session *</label>
-                  <select
-                    required
-                    value={regSession}
-                    onChange={(e) => setRegSession(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  >
-                    {sessions.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Primary Position *</label>
-                  <select
-                    required
-                    value={regPrimaryPosition}
-                    onChange={(e) => setRegPrimaryPosition(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  >
-                    {positions.map(pos => (
-                      <option key={pos.code} value={pos.code}>{pos.name} ({pos.code})</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Jersey Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="STERLING"
-                    value={regJerseyName}
-                    onChange={(e) => setRegJerseyName(e.target.value.toUpperCase())}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Jersey Number *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="10"
-                    value={regJerseyNumber}
-                    onChange={(e) => setRegJerseyNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: '#1e293b',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      color: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Secondary Positions (Optional)</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {positions.map(pos => {
-                    const isPrimary = regPrimaryPosition === pos.code;
-                    const isSelected = regSecondaryPositions.includes(pos.code);
-                    return (
-                      <button
-                        type="button"
-                        key={pos.code}
-                        onClick={() => toggleSecondaryPosition(pos.code)}
-                        disabled={isPrimary}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: isPrimary ? 'not-allowed' : 'pointer',
-                          opacity: isPrimary ? 0.4 : 1,
-                          border: isSelected ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
-                          background: isSelected ? 'rgba(0, 217, 255, 0.2)' : '#1e293b',
-                          color: isSelected ? 'var(--accent-cyan)' : '#94a3b8'
-                        }}
-                      >
-                        + {pos.code}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Profile Photo *</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageFileChange}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: '8px',
-                    background: '#1e293b',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#94a3b8',
-                    fontSize: '0.82rem'
-                  }}
-                />
-                {regImageUrl && (
-                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <img src={regImageUrl} alt="Preview" style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--accent-green)' }} />
-                    <span style={{ fontSize: '0.78rem', color: '#00e699' }}>✓ Profile photo attached</span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  marginTop: '8px'
-                }}
-              >
-                Submit Player Registration Profile
-              </button>
-            </form>
+          {/* Registration Tab — ONLY visible in Phase 2 */}
+          {isRegistration && (
+            <button
+              onClick={() => setActiveTab('REGISTER')}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === 'REGISTER' ? 'rgba(34, 197, 94, 0.25)' : 'transparent',
+                color: activeTab === 'REGISTER' ? '#4ade80' : '#94a3b8',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <UserPlus size={16} />
+              <span>Player Register</span>
+            </button>
           )}
         </div>
-      )}
+
+        {/* ── TAB 1: LOGIN PORTAL ────────────────────────────────────────── */}
+        {activeTab === 'LOGIN' && (
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Portal Single Sign-On</h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '4px 0 0 0' }}>Enter your credentials or choose a quick demo role below.</p>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Email / Username / Role</label>
+              <input
+                type="text"
+                placeholder="e.g. admin@gmail.com, subadmin, podium, manager..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: '#1e293b',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#fff',
+                  fontSize: '0.9rem'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password</label>
+              <input
+                type="password"
+                placeholder="•••••••• (Default demo: 123456)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: '#1e293b',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#fff',
+                  fontSize: '0.9rem'
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              style={{
+                padding: '12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '6px'
+              }}
+            >
+              <span>Sign In to Platform</span>
+              <ArrowRight size={16} />
+            </button>
+
+            {/* Quick Switch Demo Accounts */}
+            <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '18px', marginTop: '6px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
+                Quick Demo Switcher
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {Object.keys(PRESET_ACCOUNTS).map(key => {
+                  const acc = PRESET_ACCOUNTS[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handlePresetSelect(key)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: 'rgba(30, 41, 59, 0.6)',
+                        color: '#cbd5e1',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>{acc.avatar}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ── TAB 2: PLAYER REGISTER (Phase 2 Only) ────────────────────────── */}
+        {activeTab === 'REGISTER' && isRegistration && (
+          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Player Portal Registration</h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '4px 0 0 0' }}>Submit your profile details for auction pool qualification.</p>
+            </div>
+
+            {regSuccess ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#4ade80' }}>
+                <CheckCircle2 size={48} style={{ marginBottom: '12px' }} />
+                <h3>Registration Successful!</h3>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Redirecting to your dashboard...</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Full Name *</label>
+                  <input type="text" required value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="e.g. John Doe" className="form-control" style={{ fontSize: '0.85rem' }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Student ID *</label>
+                    <input type="text" required value={regStudentId} onChange={(e) => setRegStudentId(e.target.value)} placeholder="ST-2026-08" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Academic Session *</label>
+                    <select value={regSession} onChange={(e) => setRegSession(e.target.value)} className="form-control" style={{ fontSize: '0.85rem' }}>
+                      {sessions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Email *</label>
+                    <input type="email" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="student@univ.edu" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Password *</label>
+                    <input type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="••••••••" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Jersey Name *</label>
+                    <input type="text" required value={regJerseyName} onChange={(e) => setRegJerseyName(e.target.value)} placeholder="DOE" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Jersey Number *</label>
+                    <input type="text" required value={regJerseyNumber} onChange={(e) => setRegJerseyNumber(e.target.value)} placeholder="10" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Primary Position *</label>
+                  <select value={regPrimaryPosition} onChange={(e) => setRegPrimaryPosition(e.target.value)} className="form-control" style={{ fontSize: '0.85rem' }}>
+                    {positions.map(p => <option key={p.code} value={p.code}>{p.code} - {p.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Profile Photo (OPTIONAL) */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Profile Photo (Optional)</label>
+                  <input type="file" accept="image/*" onChange={handleImageFileChange} className="form-control" style={{ fontSize: '0.8rem', padding: '6px' }} />
+                  {regImageUrl && (
+                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <img src={regImageUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }} />
+                      <span style={{ fontSize: '0.75rem', color: '#4ade80' }}>✓ Photo attached</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    marginTop: '6px'
+                  }}
+                >
+                  Complete Registration
+                </button>
+              </>
+            )}
+          </form>
+        )}
+
+      </div>
     </div>
   );
 }

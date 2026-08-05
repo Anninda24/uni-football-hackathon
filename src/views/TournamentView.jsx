@@ -19,6 +19,7 @@ import {
   Users,
   ShieldCheck,
   Zap,
+  Flame,
   CheckCircle2,
   AlertTriangle,
   FolderPlus,

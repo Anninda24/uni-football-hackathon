@@ -1,10 +1,10 @@
 import React from 'react';
 import { useSystemPhase } from '../context/SystemPhaseContext';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Home, LogIn, BookOpen, Calendar, Radio, Trophy, Lock, UserCheck } from 'lucide-react';
+import { Shield, Home, LogIn, BookOpen, Calendar, Radio, Trophy, Lock, UserCheck, UserPlus } from 'lucide-react';
 
 export function PublicLayout({ activeRoute, setActiveRoute, children }) {
-  const { currentPhase, isAuction, isTournament } = useSystemPhase();
+  const { currentPhase, isRegistration, isAuction, isTournament } = useSystemPhase();
   const { currentUser } = useAuth();
 
   const navItems = [
@@ -106,9 +106,9 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
           })}
         </div>
 
-        {/* Portal Login Direct Link */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {currentUser.role !== 'SPECTATOR' ? (
+        {/* Top Right Corner Auth Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {currentUser.role !== 'SPECTATOR' && (
             <button
               onClick={() => setActiveRoute('DEFAULT')}
               style={{
@@ -128,9 +128,34 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
               <UserCheck style={{ width: '14px', height: '14px' }} />
               <span>Go to {currentUser.role.replace('_', ' ')} Dashboard</span>
             </button>
-          ) : (
+          )}
+
+          {/* Login Button — Always Available */}
+          <button
+            onClick={() => setActiveRoute('PUBLIC_LOGIN')}
+            style={{
+              background: activeRoute === 'PUBLIC_LOGIN' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              color: '#60a5fa',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogIn style={{ width: '15px', height: '15px' }} />
+            <span>Login</span>
+          </button>
+
+          {/* Register Button — ONLY shown in Phase 2: Registration */}
+          {isRegistration && (
             <button
-              onClick={() => setActiveRoute('PUBLIC_LOGIN')}
+              onClick={() => setActiveRoute('PUBLIC_REGISTER')}
               style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 border: 'none',
@@ -139,10 +164,15 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
                 padding: '8px 16px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease'
               }}
             >
-              Login / Register
+              <UserPlus style={{ width: '15px', height: '15px' }} />
+              <span>Register</span>
             </button>
           )}
         </div>
