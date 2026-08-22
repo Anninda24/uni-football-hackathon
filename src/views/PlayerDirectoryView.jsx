@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
+import { useAuth } from '../context/AuthContext';
 import {
   UserCheck,
   Plus,
@@ -43,6 +44,9 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     addNotification,
     teams
   } = useSystem();
+  const { currentUser } = useAuth();
+
+  const isAdmin = ['SUPER_ADMIN', 'SUB_ADMIN', 'PODIUM_ADMIN'].includes(currentUser.role);
 
   // Top Bar States
   const [viewMode, setViewMode] = useState('CARD'); // 'TABLE' or 'CARD'
@@ -241,12 +245,16 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={() => setShowBulkImportModal(true)} className="btn btn-secondary" style={{ fontSize: '0.82rem' }}>
-              <FileSpreadsheet size={16} color="var(--accent-cyan)" /> Bulk CSV/Excel Importer
-            </button>
-            <button onClick={handleOpenAdd} className="btn btn-primary">
-              <Plus size={18} /> + Add Player
-            </button>
+            {isAdmin && (
+              <button onClick={() => setShowBulkImportModal(true)} className="btn btn-secondary" style={{ fontSize: '0.82rem' }}>
+                <FileSpreadsheet size={16} color="var(--accent-cyan)" /> Bulk CSV/Excel Importer
+              </button>
+            )}
+            {isAdmin && (
+              <button onClick={handleOpenAdd} className="btn btn-primary">
+                <Plus size={18} /> + Add Player
+              </button>
+            )}
           </div>
         </div>
 
@@ -427,30 +435,36 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                           >
                             <Eye size={14} />
                           </button>
-                          <select
-                            value={player.categoryId || ''}
-                            onChange={(e) => handleAssignCategory(player.id, e.target.value)}
-                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: categoryColor, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                          >
-                            <option value="">Unallocated</option>
-                            {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                          <button
-                            onClick={() => setConfirmDeletePlayer(player)}
-                            className="btn btn-danger"
-                            style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                            title="Delete Player"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => toggleBanPlayer(player.id)}
-                            className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
-                            style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                            title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
-                          >
-                            <Ban size={14} />
-                          </button>
+                          {isAdmin && (
+                            <select
+                              value={player.categoryId || ''}
+                              onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: categoryColor, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                            >
+                              <option value="">Unallocated</option>
+                              {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => setConfirmDeletePlayer(player)}
+                              className="btn btn-danger"
+                              style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                              title="Delete Player"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => toggleBanPlayer(player.id)}
+                              className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
+                              style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                              title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
+                            >
+                              <Ban size={14} />
+                            </button>
+                          )}
                         </div>
 
                       </div>
@@ -513,20 +527,26 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                             ))}
                           </td>
                           <td style={{ padding: '12px 16px' }}>
-                            <select
-                              value={player.categoryId || ''}
-                              onChange={(e) => handleAssignCategory(player.id, e.target.value)}
-                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }}
-                            >
-                              <option value="">Unallocated</option>
-                              {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
+                            {isAdmin ? (
+                              <select
+                                value={player.categoryId || ''}
+                                onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: category ? category.color : 'var(--accent-green)', padding: '4px 8px', fontSize: '0.8rem', fontWeight: 700, outline: 'none' }}
+                              >
+                                <option value="">Unallocated</option>
+                                {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              </select>
+                            ) : (
+                              <span className="badge" style={{ fontSize: '0.7rem', background: category ? category.color + '20' : 'rgba(255,255,255,0.1)', color: category ? category.color : 'var(--text-muted)', border: `1px solid ${category ? category.color + '40' : 'var(--border-color)'}` }}>
+                                {systemState.categories.find(c => c.id === player.categoryId)?.name || 'Unallocated'}
+                              </span>
+                            )}
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                               <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
-                              <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
-                              <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                              {isAdmin && <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>}
+                              {isAdmin && <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>}
                             </div>
                           </td>
                         </tr>
@@ -745,17 +765,19 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
               </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => {
-                  const p = selectedPlayerDetail;
-                  setSelectedPlayerDetail(null);
-                  handleOpenEdit(p);
-                }}
-                className="btn btn-primary"
-                style={{ flex: 1 }}
-              >
-                <Edit3 size={16} /> Edit Profile
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    const p = selectedPlayerDetail;
+                    setSelectedPlayerDetail(null);
+                    handleOpenEdit(p);
+                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  <Edit3 size={16} /> Edit Profile
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -779,9 +801,11 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={handleSimulateBulkImport} className="btn btn-primary" style={{ flex: 1 }}>
-                Import Sample Roster (4 Players)
-              </button>
+              {isAdmin && (
+                <button onClick={handleSimulateBulkImport} className="btn btn-primary" style={{ flex: 1 }}>
+                  Import Sample Roster (4 Players)
+                </button>
+              )}
               <button onClick={() => setShowBulkImportModal(false)} className="btn btn-secondary">
                 Cancel
               </button>
@@ -801,17 +825,19 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
               Are you sure you want to permanently delete <strong>{confirmDeletePlayer.name}</strong>? This action cannot be undone. The player record and associated Cloudinary asset will be wiped.
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  deletePlayer(confirmDeletePlayer.id);
-                  setConfirmDeletePlayer(null);
-                  setSelectedPlayerDetail(null);
-                }}
-                className="btn btn-danger"
-                style={{ flex: 1 }}
-              >
-                <Trash2 size={14} /> Yes, Delete Permanently
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    deletePlayer(confirmDeletePlayer.id);
+                    setConfirmDeletePlayer(null);
+                    setSelectedPlayerDetail(null);
+                  }}
+                  className="btn btn-danger"
+                  style={{ flex: 1 }}
+                >
+                  <Trash2 size={14} /> Yes, Delete Permanently
+                </button>
+              )}
               <button onClick={() => setConfirmDeletePlayer(null)} className="btn btn-secondary">
                 Cancel
               </button>

@@ -20,7 +20,8 @@ import {
   Crown,
   Lock,
   TrendingUp,
-  Shield
+  Shield,
+  UserSearch
 } from 'lucide-react';
 
 export function DynamicSidebar({ activeRoute, setActiveRoute }) {
@@ -37,6 +38,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
           { id: 'SUPER_ADMIN_DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'SUPER_ADMIN_AUCTION_RULES', label: 'Auction Rules', icon: Gavel },
           { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Player Pool and Category', icon: Users },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'SUPER_ADMIN_TEAM_MANAGEMENT', label: 'Team Management', icon: Trophy },
           { id: 'SUPER_ADMIN_SETTINGS', label: 'Settings', icon: Settings }
         ];
@@ -44,6 +46,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
       case 'SUB_ADMIN':
         return [
           { id: 'SUB_ADMIN_TEAMS', label: 'Teams', icon: Trophy },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'SUB_ADMIN_MATCHES', label: 'Matches', icon: Calendar },
           { id: 'SUB_ADMIN_STANDINGS', label: 'Standings', icon: TrendingUp },
           { id: 'SUB_ADMIN_STATISTICS', label: 'Statistics', icon: Award },
@@ -54,12 +57,14 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'CAPTAIN_DASHBOARD', label: 'Captain Dashboard', icon: Crown },
           { id: 'MY_TEAM', label: 'My Team Info', icon: Users },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'ICON_PLAYER_AUCTION', label: 'Auction', icon: Gavel }
         ];
 
       case 'PLAYER':
         return [
           { id: 'PLAYER_MY_PROFILE', label: 'My Profile', icon: UserCheck },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'PLAYER_MY_TEAM', label: 'My Team', icon: Trophy }
         ];
 
@@ -67,12 +72,14 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'MANAGER_MY_PROFILE', label: 'My Profile', icon: UserCheck },
           { id: 'MANAGER_MY_TEAM', label: 'My Team', icon: Trophy },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'MANAGER_AUCTION', label: 'Auction', icon: Gavel }
         ];
 
       case 'PODIUM_ADMIN':
         return [
           { id: 'PODIUM_PLAYER_POOL', label: 'Player Pool', icon: Users },
+          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'PODIUM_AUCTION_CONTROL', label: 'Auction Control', icon: Gavel },
           { id: 'PODIUM_TEAMS', label: 'Teams', icon: Trophy },
           { id: 'PODIUM_AUCTION_HISTORY', label: 'Auction History', icon: History }

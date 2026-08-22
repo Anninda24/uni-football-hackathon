@@ -296,6 +296,13 @@ function AppContent() {
       case 'PUBLIC_LIVE_TOURNAMENT':
         return <TournamentView defaultTab="MATCHES" readOnly={true} />;
 
+      case 'PLAYER_DIRECTORY':
+        return (
+          <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SUB_ADMIN', 'PODIUM_ADMIN', 'ICON_PLAYER', 'PLAYER', 'TEAM_MANAGER']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerDirectoryView />
+          </ProtectedRoute>
+        );
+
       default:
         return <HomePageView onNavigate={setActiveRoute} />;
     }
