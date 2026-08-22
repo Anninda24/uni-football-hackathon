@@ -122,7 +122,7 @@ function AppContent() {
   // View Resolver strictly mapping routes to components
   const renderRouteView = () => {
     // Check if Sub-Admin is attempting to access Sub-Admin features before Phase 4 (Tournament)
-    if (currentUser.role === 'SUB_ADMIN' && !isTournament && effectiveRoute.startsWith('SUB_ADMIN_')) {
+    if (currentUser.role === 'SUB_ADMIN' && !isTournament && effectiveRoute.startsWith('SUB_ADMIN_') && effectiveRoute !== 'SUB_ADMIN_PLAYERS') {
       return renderSubAdminLockedScreen();
     }
 
@@ -199,6 +199,13 @@ function AppContent() {
           </ProtectedRoute>
         );
 
+      case 'SUB_ADMIN_PLAYERS':
+        return (
+          <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerDirectoryView readOnly={true} scope="all" />
+          </ProtectedRoute>
+        );
+
       // --- PODIUM ADMIN ROUTES ---
       case 'PODIUM_PLAYER_POOL':
         return (
@@ -265,6 +272,13 @@ function AppContent() {
           </ProtectedRoute>
         );
 
+      case 'PLAYER_PLAYERS':
+        return (
+          <ProtectedRoute allowedRoles={['PLAYER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerDirectoryView readOnly={true} scope="assignedTeam" />
+          </ProtectedRoute>
+        );
+
       // --- TEAM MANAGER ROUTES ---
       case 'MANAGER_MY_PROFILE':
         return (
@@ -277,6 +291,13 @@ function AppContent() {
         return (
           <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
             <MyTeamInfoView />
+          </ProtectedRoute>
+        );
+
+      case 'MANAGER_PLAYERS':
+        return (
+          <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
+            <PlayerDirectoryView readOnly={true} scope="assignedTeam" />
           </ProtectedRoute>
         );
 

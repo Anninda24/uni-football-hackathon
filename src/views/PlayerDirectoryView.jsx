@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
 import { useAuth } from '../context/AuthContext';
+import { useSystemPhase } from '../context/SystemPhaseContext';
 import {
   UserCheck,
   Plus,
@@ -33,7 +34,7 @@ const POSITIONS = [
   { code: 'ST', name: 'Striker' }
 ];
 
-export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
+export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false, scope = 'all' }) => {
   const {
     systemState,
     players,
@@ -45,8 +46,26 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     teams
   } = useSystem();
   const { currentUser } = useAuth();
+  const { isTournament } = useSystemPhase();
 
   const isAdmin = ['SUPER_ADMIN', 'SUB_ADMIN', 'PODIUM_ADMIN'].includes(currentUser.role);
+
+  const resolveAssignedTeamId = () => {
+    if (currentUser?.role === 'TEAM_MANAGER') {
+      const managed = teams.find(t => t.managerId === currentUser.id) || teams.find(t => t.id === currentUser.teamId);
+      return managed?.id || null;
+    }
+    const myPlayer = players.find(p => p.id === currentUser?.id || p.email === currentUser?.email);
+    return myPlayer?.soldToTeamId || currentUser?.teamId || null;
+  };
+
+  const assignedTeamId = resolveAssignedTeamId();
+  const assignedTeam = teams.find(t => t.id === assignedTeamId);
+  const restrictToAssignedTeam = scope === 'assignedTeam' && isTournament;
+
+  const visiblePlayers = restrictToAssignedTeam
+    ? players.filter(p => p.soldToTeamId === assignedTeamId || assignedTeam?.roster?.includes(p.id))
+    : players;
 
   // Top Bar States
   const [viewMode, setViewMode] = useState('CARD'); // 'TABLE' or 'CARD'
@@ -193,7 +212,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
   };
 
   // Filter & Sort Logic
-  const filteredPlayers = players.filter(p => {
+  const filteredPlayers = visiblePlayers.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.jerseyName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -247,13 +266,18 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <UserCheck color="var(--accent-green)" /> Player Directory (/admin/players)
+              <UserCheck color="var(--accent-green)" /> {readOnly ? 'Players' : 'Player Directory (/admin/players)'}
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Manage registered athletes, profile metadata, position tags, Cloudinary photos, and ban statuses ({players.length} Total).
+              {readOnly
+                ? (restrictToAssignedTeam
+                  ? `Players assigned to your team (${visiblePlayers.length} Total).`
+                  : `All registered players (${visiblePlayers.length} Total).`)
+                : `Manage registered athletes, profile metadata, position tags, Cloudinary photos, and ban statuses (${players.length} Total).`}
             </p>
           </div>
 
+          {!readOnly && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {isAdmin && (
               <button onClick={() => setShowBulkImportModal(true)} className="btn btn-secondary" style={{ fontSize: '0.82rem' }}>
@@ -266,6 +290,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
               </button>
             )}
           </div>
+          )}
         </div>
 
         {/* Controls: Search, Filters, Sort, View Switcher */}
@@ -445,35 +470,33 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                           >
                             <Eye size={14} />
                           </button>
-                          {isAdmin && (
-                            <select
-                              value={player.categoryId || ''}
-                              onChange={(e) => handleAssignCategory(player.id, e.target.value)}
-                              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: categoryColor, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
-                            >
-                              <option value="">Unallocated</option>
-                              {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                          )}
-                          {isAdmin && (
-                            <button
-                              onClick={() => setConfirmDeletePlayer(player)}
-                              className="btn btn-danger"
-                              style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                              title="Delete Player"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                          {isAdmin && (
-                            <button
-                              onClick={() => toggleBanPlayer(player.id)}
-                              className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
-                              style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                              title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
-                            >
-                              <Ban size={14} />
-                            </button>
+                          {!readOnly && isAdmin && (
+                            <>
+                              <select
+                                value={player.categoryId || ''}
+                                onChange={(e) => handleAssignCategory(player.id, e.target.value)}
+                                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '6px', color: categoryColor, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                              >
+                                <option value="">Unallocated</option>
+                                {systemState.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              </select>
+                              <button
+                                onClick={() => setConfirmDeletePlayer(player)}
+                                className="btn btn-danger"
+                                style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                                title="Delete Player"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => toggleBanPlayer(player.id)}
+                                className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`}
+                                style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+                                title={player.status === 'BANNED' ? 'Unban Player' : 'Ban / Disqualify'}
+                              >
+                                <Ban size={14} />
+                              </button>
+                            </>
                           )}
                         </div>
 
@@ -537,7 +560,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                             ))}
                           </td>
                           <td style={{ padding: '12px 16px' }}>
-                            {isAdmin ? (
+                            {!readOnly && isAdmin ? (
                               <select
                                 value={player.categoryId || ''}
                                 onChange={(e) => handleAssignCategory(player.id, e.target.value)}
@@ -555,8 +578,12 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                               <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
-                              {isAdmin && <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>}
-                              {isAdmin && <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>}
+                              {!readOnly && isAdmin && (
+                                <>
+                                  <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>
+                                  <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -775,7 +802,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
               </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              {isAdmin && (
+              {!readOnly && isAdmin && (
                 <button
                   onClick={() => {
                     const p = selectedPlayerDetail;

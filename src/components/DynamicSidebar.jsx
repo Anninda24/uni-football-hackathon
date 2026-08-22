@@ -50,6 +50,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
           { id: 'SUB_ADMIN_MATCHES', label: 'Matches', icon: Calendar },
           { id: 'SUB_ADMIN_STANDINGS', label: 'Standings', icon: TrendingUp },
           { id: 'SUB_ADMIN_STATISTICS', label: 'Statistics', icon: Award },
+          { id: 'SUB_ADMIN_PLAYERS', label: 'Players', icon: Users },
           { id: 'SUB_ADMIN_SETTINGS', label: 'Tournament Settings', icon: Settings }
         ];
 
@@ -65,7 +66,8 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'PLAYER_MY_PROFILE', label: 'My Profile', icon: UserCheck },
           { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
-          { id: 'PLAYER_MY_TEAM', label: 'My Team', icon: Trophy }
+          { id: 'PLAYER_MY_TEAM', label: 'My Team', icon: Trophy },
+          { id: 'PLAYER_PLAYERS', label: 'Players', icon: Users }
         ];
 
       case 'TEAM_MANAGER':
@@ -73,6 +75,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
           { id: 'MANAGER_MY_PROFILE', label: 'My Profile', icon: UserCheck },
           { id: 'MANAGER_MY_TEAM', label: 'My Team', icon: Trophy },
           { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
+          { id: 'MANAGER_PLAYERS', label: 'Players', icon: Users },
           { id: 'MANAGER_AUCTION', label: 'Auction', icon: Gavel }
         ];
 

@@ -29,20 +29,17 @@ export const MyTeamInfoView = () => {
 
   const role = currentUser.role;
 
-  let myTeam = null;
-  if (role === 'TEAM_MANAGER') {
-    myTeam = teams.find(t => t.managerId === currentUser.id || t.id === currentUser.teamId) || teams[0];
-  } else if (role === 'PLAYER') {
-    const me = players.find(p => p.id === currentUser.id);
-    myTeam = me?.soldToTeamId ? teams.find(t => t.id === me.soldToTeamId) : teams[0];
-  } else if (role === 'ICON_PLAYER') {
-    myTeam = teams.find(t => t.captainId === currentUser.id) || teams[0];
-  } else {
-    myTeam = teams[0];
-  }
+  const resolveMyTeam = () => {
+    if (currentUser?.role === 'TEAM_MANAGER') {
+      return teams.find(t => t.managerId === currentUser.id) || teams.find(t => t.id === currentUser.teamId);
+    }
+    const myPlayer = players.find(p => p.id === currentUser?.id || p.email === currentUser?.email);
+    const teamId = myPlayer?.soldToTeamId || currentUser?.teamId;
+    return teams.find(t => t.id === teamId) || teams[0];
+  };
 
-  const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
-  const displayRoster = rosterPlayers.length > 0 ? rosterPlayers : [];
+  const myTeam = resolveMyTeam();
+  const rosterPlayers = players.filter(p => p.soldToTeamId === myTeam?.id || myTeam?.roster?.includes(p.id));
 
   const totalPurse = myTeam ? (myTeam.budget + myTeam.spent) : (systemState.totalBudget || 100000);
   const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((myTeam.spent / totalPurse) * 100) : 0;
