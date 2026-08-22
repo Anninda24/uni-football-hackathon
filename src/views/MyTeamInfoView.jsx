@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
+import { useAuth } from '../context/AuthContext';
 import { Users, Shield, DollarSign, Star, Crown, UserCheck, ChevronDown, ChevronUp } from 'lucide-react';
 
 const POSITION_COLORS = {
@@ -18,17 +19,50 @@ const CATEGORY_COLORS = {
 };
 
 export const MyTeamInfoView = () => {
-  const { teams, players, systemState } = useSystem();
+  const { teams, players, systemState, setTeams, addNotification } = useSystem();
+  const { currentUser } = useAuth();
   const [expandedPlayer, setExpandedPlayer] = useState(null);
+  const [captainAssignId, setCaptainAssignId] = useState('');
+  const [viceCaptainAssignId, setViceCaptainAssignId] = useState('');
 
-  const myTeam = teams[0]; // Demo: first team as Icon Player's team
+  const role = currentUser.role;
+
+  let myTeam = null;
+  if (role === 'TEAM_MANAGER') {
+    myTeam = teams.find(t => t.managerId === currentUser.id || t.id === currentUser.teamId) || teams[0];
+  } else if (role === 'PLAYER') {
+    const me = players.find(p => p.id === currentUser.id);
+    myTeam = me?.soldToTeamId ? teams.find(t => t.id === me.soldToTeamId) : teams[0];
+  } else if (role === 'ICON_PLAYER') {
+    myTeam = teams.find(t => t.captainId === currentUser.id) || teams[0];
+  } else {
+    myTeam = teams[0];
+  }
+
   const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
-
-  // Demo roster if empty
-  const displayRoster = rosterPlayers.length > 0 ? rosterPlayers : players.slice(0, 5);
+  const displayRoster = rosterPlayers.length > 0 ? rosterPlayers : [];
 
   const budgetUsedPct = myTeam ? Math.round((myTeam.spent / myTeam.budget) * 100) : 0;
   const remainingBudget = myTeam ? myTeam.budget - myTeam.spent : 100000;
+
+  const isManager = role === 'TEAM_MANAGER';
+  const canAssignLeaders = isManager || role === 'SUPER_ADMIN' || role === 'SUB_ADMIN';
+
+  const handleAssignCaptain = () => {
+    if (!myTeam || !captainAssignId) return;
+    setTeams(prev => prev.map(t => t.id === myTeam.id ? { ...t, captainId: captainAssignId } : t));
+    const player = players.find(p => p.id === captainAssignId);
+    addNotification('success', 'Captain Assigned', `${player?.name || 'Player'} is now team captain.`);
+    setCaptainAssignId('');
+  };
+
+  const handleAssignViceCaptain = () => {
+    if (!myTeam || !viceCaptainAssignId) return;
+    setTeams(prev => prev.map(t => t.id === myTeam.id ? { ...t, viceCaptainId: viceCaptainAssignId } : t));
+    const player = players.find(p => p.id === viceCaptainAssignId);
+    addNotification('success', 'Vice Captain Assigned', `${player?.name || 'Player'} is now vice captain.`);
+    setViceCaptainAssignId('');
+  };
 
   const getPositionColor = (pos) => POSITION_COLORS[pos] || 'var(--text-muted)';
 
@@ -51,15 +85,15 @@ export const MyTeamInfoView = () => {
               <div>
                 <h2 style={{ fontSize: '1.7rem', fontWeight: 900, margin: 0 }}>{myTeam?.name || 'Thunderbolts FC'}</h2>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                  <span className="badge badge-gold">Icon Captain's Team</span>
-                  <span className="badge badge-green">{systemState.currentPhase}</span>
+                  <span className="badge badge-gold">{role.replace('_', ' ')} Team View</span>
+                  <span className="badge badge-green">{systemState.currentPhase.label}</span>
                 </div>
               </div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {[
-              { label: 'MANAGER', value: myTeam?.managerName || 'Alex Mercer', color: 'var(--accent-cyan)' },
+              { label: 'MANAGER', value: myTeam?.managerName || 'Unassigned', color: 'var(--accent-cyan)' },
               { label: 'ROSTER', value: `${displayRoster.length} Players`, color: 'var(--accent-green)' },
               { label: 'BUDGET', value: `$${(myTeam?.budget || 100000).toLocaleString()}`, color: 'var(--accent-gold)' },
               { label: 'SPENT', value: `$${(myTeam?.spent || 0).toLocaleString()}`, color: 'var(--accent-red)' },
@@ -104,7 +138,7 @@ export const MyTeamInfoView = () => {
         {displayRoster.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
             <Users size={40} color="var(--text-dim)" style={{ marginBottom: '12px' }} />
-            <p>No players in roster yet. Check back after the auction.</p>
+            <p>No players in roster yet. Players will appear here after the auction.</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
@@ -185,6 +219,50 @@ export const MyTeamInfoView = () => {
           </div>
         )}
       </div>
+
+      {/* Captain & Vice-Captain Assignment */}
+      {canAssignLeaders && (
+        <div className="glass-panel" style={{ padding: '22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <Crown size={18} color="var(--accent-gold)" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Assign Leaders</h3>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Team Captain</label>
+              <select
+                value={captainAssignId}
+                onChange={(e) => setCaptainAssignId(e.target.value)}
+                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', padding: '8px 10px', fontSize: '0.85rem', outline: 'none' }}
+              >
+                <option value="">Select captain...</option>
+                {displayRoster.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
+                ))}
+              </select>
+              <button onClick={handleAssignCaptain} className="btn btn-primary" style={{ width: '100%', marginTop: '8px', fontSize: '0.82rem' }} disabled={!captainAssignId}>
+                <Crown size={14} /> Assign Captain
+              </button>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Vice Captain</label>
+              <select
+                value={viceCaptainAssignId}
+                onChange={(e) => setViceCaptainAssignId(e.target.value)}
+                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', padding: '8px 10px', fontSize: '0.85rem', outline: 'none' }}
+              >
+                <option value="">Select vice captain...</option>
+                {displayRoster.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.primaryPosition})</option>
+                ))}
+              </select>
+              <button onClick={handleAssignViceCaptain} className="btn btn-secondary" style={{ width: '100%', marginTop: '8px', fontSize: '0.82rem' }} disabled={!viceCaptainAssignId}>
+                <Star size={14} /> Assign Vice Captain
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Management Notes */}
       <div className="glass-panel" style={{ padding: '22px' }}>

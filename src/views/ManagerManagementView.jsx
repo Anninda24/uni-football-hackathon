@@ -45,6 +45,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    username: '',
     mobile: '',
     password: '',
     teamId: '',
@@ -59,8 +60,10 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     setFormData({
       name: '',
       email: '',
+      username: '',
       mobile: '',
       password: autoPass,
+      teamId: '',
       imageUrl: ''
     });
     setImagePreview('');
@@ -72,6 +75,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     setFormData({
       name: mgr.name,
       email: mgr.email,
+      username: mgr.username || '',
       mobile: mgr.mobile || '',
       password: mgr.password || '********',
       teamId: mgr.teamId || '',
@@ -107,7 +111,11 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
       return;
     }
 
-
+    const duplicateEmail = managers.find(m => m.email.toLowerCase() === formData.email.toLowerCase() && m.id !== editingManager?.id);
+    if (duplicateEmail) {
+      addNotification('error', 'Duplicate Email', 'A manager with this email already exists.');
+      return;
+    }
 
     const defaultImg = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
@@ -265,6 +273,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                   </div>
 
                   <div style={{ background: 'var(--bg-input)', padding: '10px', borderRadius: '10px', fontSize: '0.78rem', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div>Username: <strong style={{ color: 'var(--accent-cyan)' }}>{mgr.username || 'N/A'}</strong></div>
                     <div>Mobile: <strong style={{ color: 'var(--accent-cyan)' }}>{mgr.mobile || 'N/A'}</strong></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>Assigned Franchise:</span>
@@ -297,6 +306,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
             <thead>
                 <tr style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '14px 16px' }}>MANAGER</th>
+                  <th style={{ padding: '14px 16px' }}>USERNAME</th>
                   <th style={{ padding: '14px 16px' }}>MOBILE / CONTACT</th>
                   <th style={{ padding: '14px 16px' }}>LINKED FRANCHISE</th>
                   <th style={{ padding: '14px 16px' }}>TOKEN STATUS</th>
@@ -318,6 +328,7 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                         </div>
                       </div>
                     </td>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)', fontSize: '0.8rem' }}>{mgr.username || 'N/A'}</td>
                     <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)' }}>{mgr.mobile || 'N/A'}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <select
@@ -385,6 +396,19 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                    />
                  </div>
                  <div className="form-group">
+                   <label className="form-label">Username</label>
+                   <input
+                     type="text"
+                     className="form-control"
+                     placeholder="e.g. alex_mgr"
+                     value={formData.username}
+                     onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                   />
+                 </div>
+               </div>
+
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                 <div className="form-group">
                    <label className="form-label">Mobile Number</label>
                    <input
                      type="tel"
@@ -393,6 +417,17 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                      value={formData.mobile}
                      onChange={(e) => setFormData(prev => ({ ...prev, mobile: e.target.value }))}
                    />
+                 </div>
+                 <div className="form-group">
+                   <label className="form-label">Assign Franchise Team</label>
+                   <select
+                     className="form-control"
+                     value={formData.teamId}
+                     onChange={(e) => setFormData(prev => ({ ...prev, teamId: e.target.value }))}
+                   >
+                     <option value="">Unassigned</option>
+                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                   </select>
                  </div>
                </div>
 
@@ -460,11 +495,12 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
                </div>
              </div>
 
-            <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div>Assigned Team: <span className="badge badge-green">{teams.find(t => t.id === selectedManagerDetail.teamId)?.name || 'Unassigned'}</span></div>
-              <div>Password Credentials: <code style={{ color: 'var(--accent-gold)' }}>{selectedManagerDetail.password || '********'}</code></div>
-              <div>Login Token Status: <span className={`badge ${selectedManagerDetail.status === 'BANNED' ? 'badge-red' : 'badge-green'}`}>{selectedManagerDetail.status === 'BANNED' ? 'DEACTIVATED' : 'ACTIVE'}</span></div>
-            </div>
+             <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+               <div>Assigned Team: <span className="badge badge-green">{teams.find(t => t.id === selectedManagerDetail.teamId)?.name || 'Unassigned'}</span></div>
+               <div>Username: <code style={{ color: 'var(--accent-cyan)' }}>{selectedManagerDetail.username || 'N/A'}</code></div>
+               <div>Password Credentials: <code style={{ color: 'var(--accent-gold)' }}>••••••••</code></div>
+               <div>Login Token Status: <span className={`badge ${selectedManagerDetail.status === 'BANNED' ? 'badge-red' : 'badge-green'}`}>{selectedManagerDetail.status === 'BANNED' ? 'DEACTIVATED' : 'ACTIVE'}</span></div>
+             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => resetManagerPassword(selectedManagerDetail.id)} className="btn btn-gold" style={{ flex: 1 }}>
