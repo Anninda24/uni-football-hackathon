@@ -37,6 +37,7 @@ import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
 import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
 import { SettingsTabbedView } from './views/SettingsTabbedView';
 import { PlayerProfileView } from './views/PlayerProfileView';
+import { ManagerProfileView } from './views/ManagerProfileView';
 import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
 import { TournamentSettingsView } from './views/TournamentSettingsView';
 
@@ -252,7 +253,7 @@ function AppContent() {
       case 'MANAGER_MY_PROFILE':
         return (
           <ProtectedRoute allowedRoles={['TEAM_MANAGER', 'SUPER_ADMIN', 'SUB_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerProfileView />
+            <ManagerProfileView />
           </ProtectedRoute>
         );
 
