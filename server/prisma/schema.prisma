@@ -1,0 +1,167 @@
+// Prisma Schema for University Football Franchise & Tournament Platform Backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. User Model
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          String         @default("SPECTATOR")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  playerProfile PlayerProfile?
+  managedTeam   Team?
+}
+
+// 2. PlayerProfile Model
+model PlayerProfile {
+  id                 String        @id @default(uuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId          String
+  academicSession    String
+  jerseyName         String
+  primaryPosition    String
+  secondaryPositions String        @default("")
+  basePrice          Float         @default(0)
+  categoryId         String?
+  tierId             String?
+  imageUrl           String?
+  cloudPublicId      String?
+  status             String        @default("REGISTERED") // REGISTERED | SOLD | UNSOLD
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  playerStats        PlayerStats[]
+  matchEvents        MatchEvent[]  @relation("ScorerEvents")
+  assistEvents       MatchEvent[]  @relation("AssisterEvents")
+}
+
+// 3. Team Model
+model Team {
+  id              String   @id @default(uuid())
+  name            String
+  budget          Float    @default(100000)
+  remainingBudget Float    @default(100000)
+  managerId       String?  @unique
+  manager         User?    @relation(fields: [managerId], references: [id])
+  groupId         String?  // Strict 1-to-1 link to TournamentGroup
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// 4. CategoryTier Model
+model CategoryTier {
+  id        String   @id @default(uuid())
+  name      String
+  basePrice Float
+  createdAt DateTime @default(now())
+}
+
+// 5. BiddingRule Model
+model BiddingRule {
+  id               String   @id @default(uuid())
+  minBudgetPercent Float
+  maxBudgetPercent Float
+  raiseStep        Float
+  createdAt        DateTime @default(now())
+}
+
+// 6. SystemState Model
+model SystemState {
+  id            String   @id @default(uuid())
+  currentPhase  String   @default("SETUP")
+  enabledEvents String   @default("GOAL,ASSIST,YELLOW_CARD,RED_CARD,GOAL_SAVED,TACKLE,SHOT_ON_TARGET,SUBSTITUTION")
+  updatedAt     DateTime @updatedAt
+}
+
+// 7. AuctionLedger Model
+model AuctionLedger {
+  id        String   @id @default(uuid())
+  playerId  String
+  teamId    String?
+  amount    Float
+  timestamp DateTime @default(now())
+  type      String   @default("NORMAL")
+}
+
+// 8. Match Model
+model Match {
+  id              String        @id @default(uuid())
+  teamAId         String
+  teamBId         String
+  teamAName       String        @default("")
+  teamBName       String        @default("")
+  scoreA          Int           @default(0)
+  scoreB          Int           @default(0)
+  isTwoLegged     Boolean       @default(false)
+  leg             Int           @default(1)
+  pairedMatchId   String?
+  leg1ScoreA      Int           @default(0)
+  leg1ScoreB      Int           @default(0)
+  leg2ScoreA      Int           @default(0)
+  leg2ScoreB      Int           @default(0)
+  aggScoreA       Int           @default(0)
+  aggScoreB       Int           @default(0)
+  status          String        @default("UPCOMING")
+  scheduledTime   DateTime?
+  venue           String?
+  groupId         String?
+  stats           PlayerStats[]
+  events          MatchEvent[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// 9. PlayerStats Model
+model PlayerStats {
+  id          String        @id @default(uuid())
+  playerId    String
+  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId     String
+  match       Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId      String
+  goals       Int           @default(0)
+  assists     Int           @default(0)
+  cleanSheets Int           @default(0)
+  saves       Int           @default(0)
+  yellowCards Int           @default(0)
+  redCards    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([playerId, matchId])
+}
+
+// 10. MatchEvent Model
+model MatchEvent {
+  id              String         @id @default(uuid())
+  matchId         String
+  match           Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  type            String         // GOAL | ASSIST | YELLOW_CARD | RED_CARD | GOAL_SAVED | TACKLE | etc.
+  teamId          String
+  playerId        String
+  player          PlayerProfile  @relation("ScorerEvents", fields: [playerId], references: [id], onDelete: Cascade)
+  assistPlayerId  String?
+  assistPlayer    PlayerProfile? @relation("AssisterEvents", fields: [assistPlayerId], references: [id])
+  minute          Int            @default(0)
+  createdAt       DateTime       @default(now())
+}
+
+// 11. TournamentGroup Model
+model TournamentGroup {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#3b82f6")
+  teamIds   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
