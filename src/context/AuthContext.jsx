@@ -64,10 +64,14 @@ export const PRESET_ACCOUNTS = {
   }
 };
 
+const safeParse = (raw, fallback) => {
+  try { return JSON.parse(raw); } catch { return fallback; }
+};
+
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('ff_current_user');
-    return saved ? JSON.parse(saved) : PRESET_ACCOUNTS.SUPER_ADMIN;
+    return saved ? safeParse(saved, PRESET_ACCOUNTS.SUPER_ADMIN) : PRESET_ACCOUNTS.SUPER_ADMIN;
   });
 
   useEffect(() => {

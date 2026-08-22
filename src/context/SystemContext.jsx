@@ -284,13 +284,17 @@ const INITIAL_NEWS = [
   }
 ];
 
+const safeParse = (raw, fallback) => {
+  try { return JSON.parse(raw); } catch { return fallback; }
+};
+
 export const SystemProvider = ({ children }) => {
   // Global System Configuration & State Machine
   const [systemState, setSystemState] = useState(() => {
     const saved = localStorage.getItem('ff_system_state');
     if (!saved) return INITIAL_SYSTEM_STATE;
 
-    const parsed = JSON.parse(saved);
+    const parsed = safeParse(saved, INITIAL_SYSTEM_STATE);
 
     // --- MIGRATION: Ensure 'cat-icon' always exists as the first category
     // with basePrice=0 and red color scheme, regardless of old localStorage state ---
@@ -316,37 +320,37 @@ export const SystemProvider = ({ children }) => {
   // Roles: 'SUPER_ADMIN', 'PODIUM_ADMIN', 'TEAM_MANAGER', 'PLAYER', 'SPECTATOR'
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('ff_current_user');
-    return saved ? JSON.parse(saved) : {
+    return safeParse(saved, {
       id: 'usr-admin',
       name: 'Super Admin',
       email: 'admin@football.com',
       role: 'SUPER_ADMIN',
       teamId: null
-    };
+    });
   });
 
   // Teams & Rosters
   const [teams, setTeams] = useState(() => {
     const saved = localStorage.getItem('ff_teams');
-    return saved ? JSON.parse(saved) : INITIAL_TEAMS;
+    return safeParse(saved, INITIAL_TEAMS);
   });
 
   // Registered Players
   const [players, setPlayers] = useState(() => {
     const saved = localStorage.getItem('ff_players');
-    return saved ? JSON.parse(saved) : INITIAL_PLAYERS;
+    return safeParse(saved, INITIAL_PLAYERS);
   });
 
   // Franchise Managers
   const [managers, setManagers] = useState(() => {
     const saved = localStorage.getItem('ff_managers');
-    return saved ? JSON.parse(saved) : INITIAL_MANAGERS;
+    return safeParse(saved, INITIAL_MANAGERS);
   });
 
   // Auction State (Live Stage)
   const [auctionState, setAuctionState] = useState(() => {
     const saved = localStorage.getItem('ff_auction_state');
-    return saved ? JSON.parse(saved) : {
+    return safeParse(saved, {
       activePlayerId: null,
       mode: 'NORMAL', // 'NORMAL' (incremental) or 'BLIND' (sealed bid)
       timer: 30, // seconds
@@ -355,25 +359,25 @@ export const SystemProvider = ({ children }) => {
       highBidderTeamId: null,
       blindBids: [], // [{ teamId, amount }] for sealed envelope bids
       auctionStatus: 'IDLE' // 'IDLE', 'BIDDING', 'SOLD', 'UNSOLD'
-    };
+    });
   });
 
   // Auction Ledger (Stream of bid history)
   const [auctionLedger, setAuctionLedger] = useState(() => {
     const saved = localStorage.getItem('ff_auction_ledger');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
 
   // Fixtures & Match Management
   const [fixtures, setFixtures] = useState(() => {
     const saved = localStorage.getItem('ff_fixtures');
-    return saved ? JSON.parse(saved) : INITIAL_FIXTURES;
+    return safeParse(saved, INITIAL_FIXTURES);
   });
 
   // League News
   const [news, setNews] = useState(() => {
     const saved = localStorage.getItem('ff_news');
-    return saved ? JSON.parse(saved) : INITIAL_NEWS;
+    return safeParse(saved, INITIAL_NEWS);
   });
 
   // System Notifications
