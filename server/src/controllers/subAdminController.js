@@ -411,3 +411,79 @@ export const updateSettings = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Team CRUD
+export const getTeams = async (req, res) => {
+  try {
+    const teams = await prisma.team.findMany({
+      include: {
+        manager: true
+      }
+    });
+    res.json(teams);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const createTeam = async (req, res) => {
+  try {
+    const { name, shortName, color, secondaryColor, venue, budget, managerId, logoUrl } = req.body;
+    const team = await prisma.team.create({
+      data: {
+        name,
+        shortName: shortName || name.slice(0, 3).toUpperCase(),
+        color: color || '#3B82F6',
+        secondaryColor: secondaryColor || '#1E293B',
+        venue: venue || '',
+        budget: budget ? Number(budget) : 100000,
+        remainingBudget: budget ? Number(budget) : 100000,
+        managerId: managerId || null,
+        logoUrl: logoUrl || null
+      }
+    });
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateTeam = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, shortName, color, secondaryColor, venue, budget, managerId, logoUrl } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (shortName !== undefined) updateData.shortName = shortName;
+    if (color !== undefined) updateData.color = color;
+    if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor;
+    if (venue !== undefined) updateData.venue = venue;
+    if (budget !== undefined) {
+      updateData.budget = Number(budget);
+      // Recalculate remainingBudget appropriately
+      const team = await prisma.team.findUnique({ where: { id } });
+      const spent = (team?.budget || 0) - (team?.remainingBudget || 0);
+      updateData.remainingBudget = Number(budget) - spent;
+    }
+    if (managerId !== undefined) updateData.managerId = managerId || null;
+    if (logoUrl !== undefined) updateData.logoUrl = logoUrl || null;
+
+    const team = await prisma.team.update({
+      where: { id },
+      data: updateData
+    });
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteTeam = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.team.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

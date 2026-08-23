@@ -15,6 +15,12 @@ router.delete('/fixtures/:id', subAdminController.deleteMatch);
 router.patch('/fixtures/:id/status', subAdminController.updateMatchStatus);
 router.patch('/fixtures/:id/score', subAdminController.updateMatchScore);
 
+// Teams
+router.get('/teams', subAdminController.getTeams);
+router.post('/teams', subAdminController.createTeam);
+router.patch('/teams/:id', subAdminController.updateTeam);
+router.delete('/teams/:id', subAdminController.deleteTeam);
+
 // Events
 router.post('/fixtures/:matchId/events', subAdminController.addMatchEvent);
 router.patch('/fixtures/:matchId/events/:eventId', subAdminController.updateMatchEvent);
