@@ -28,7 +28,7 @@ export function Header({ activeRoute, setActiveRoute }) {
           background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
           display: 'flex',
           alignItems: 'center',
-          justify: 'center',
+          justifyContent: 'center',
           boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)'
         }}>
           <Shield style={{ color: '#fff', width: '24px', height: '24px' }} />

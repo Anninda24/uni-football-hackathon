@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SystemPhaseProvider, useSystemPhase } from './context/SystemPhaseContext';
 import { SystemProvider, useSystem } from './context/SystemContext';
@@ -13,33 +13,58 @@ import { CommandPalette } from './components/CommandPalette';
 import { NukeModal } from './components/NukeModal';
 import { NotificationsToast } from './components/NotificationsToast';
 
-// Module Views
-import { MissionControlView } from './views/MissionControlView';
-import { FinancialRulesView } from './views/FinancialRulesView';
-import { CategoryManagerView } from './views/CategoryManagerView';
-import { BiddingMathMatrixView } from './views/BiddingMathMatrixView';
-import { PlayerDirectoryView } from './views/PlayerDirectoryView';
-import { FranchiseTeamView } from './views/FranchiseTeamView';
-import { ManagerManagementView } from './views/ManagerManagementView';
-import { LiveOperationsView } from './views/LiveOperationsView';
-import { DangerZoneView } from './views/DangerZoneView';
-import { LiveAuctionView } from './views/LiveAuctionView';
-import { TournamentView } from './views/TournamentView';
-import { CaptainDashboardView } from './views/CaptainDashboardView';
-import { MyTeamInfoView } from './views/MyTeamInfoView';
-import { HomePageView } from './views/HomePageView';
-import { RulesCategoriesOverviewView } from './views/RulesCategoriesOverviewView';
-import { AuctionScheduleView } from './views/AuctionScheduleView';
-import { PlayerRegistrationView } from './views/PlayerRegistrationView';
-import { LoginRegisterView } from './views/LoginRegisterView';
-import { AuctionRulesTabbedView } from './views/AuctionRulesTabbedView';
-import { PlayerPoolTabbedView } from './views/PlayerPoolTabbedView';
-import { TeamManagementTabbedView } from './views/TeamManagementTabbedView';
-import { SettingsTabbedView } from './views/SettingsTabbedView';
-import { PlayerProfileView } from './views/PlayerProfileView';
-import { ManagerProfileView } from './views/ManagerProfileView';
-import { TeamPerformanceStatsView } from './views/TeamPerformanceStatsView';
-import { TournamentSettingsView } from './views/TournamentSettingsView';
+// Lazy-loaded Module Views — code split per route for faster initial load
+const MissionControlView        = lazy(() => import('./views/MissionControlView').then(m => ({ default: m.MissionControlView })));
+const FinancialRulesView        = lazy(() => import('./views/FinancialRulesView').then(m => ({ default: m.FinancialRulesView })));
+const CategoryManagerView       = lazy(() => import('./views/CategoryManagerView').then(m => ({ default: m.CategoryManagerView })));
+const BiddingMathMatrixView     = lazy(() => import('./views/BiddingMathMatrixView').then(m => ({ default: m.BiddingMathMatrixView })));
+const PlayerDirectoryView       = lazy(() => import('./views/PlayerDirectoryView').then(m => ({ default: m.PlayerDirectoryView })));
+const FranchiseTeamView         = lazy(() => import('./views/FranchiseTeamView').then(m => ({ default: m.FranchiseTeamView })));
+const ManagerManagementView     = lazy(() => import('./views/ManagerManagementView').then(m => ({ default: m.ManagerManagementView })));
+const LiveOperationsView        = lazy(() => import('./views/LiveOperationsView').then(m => ({ default: m.LiveOperationsView })));
+const DangerZoneView            = lazy(() => import('./views/DangerZoneView').then(m => ({ default: m.DangerZoneView })));
+const LiveAuctionView           = lazy(() => import('./views/LiveAuctionView').then(m => ({ default: m.LiveAuctionView })));
+const TournamentView            = lazy(() => import('./views/TournamentView').then(m => ({ default: m.TournamentView })));
+const CaptainDashboardView      = lazy(() => import('./views/CaptainDashboardView').then(m => ({ default: m.CaptainDashboardView })));
+const MyTeamInfoView            = lazy(() => import('./views/MyTeamInfoView').then(m => ({ default: m.MyTeamInfoView })));
+const HomePageView              = lazy(() => import('./views/HomePageView').then(m => ({ default: m.HomePageView })));
+const RulesCategoriesOverviewView = lazy(() => import('./views/RulesCategoriesOverviewView').then(m => ({ default: m.RulesCategoriesOverviewView })));
+const AuctionScheduleView       = lazy(() => import('./views/AuctionScheduleView').then(m => ({ default: m.AuctionScheduleView })));
+const PlayerRegistrationView    = lazy(() => import('./views/PlayerRegistrationView').then(m => ({ default: m.PlayerRegistrationView })));
+const LoginRegisterView         = lazy(() => import('./views/LoginRegisterView').then(m => ({ default: m.LoginRegisterView })));
+const AuctionRulesTabbedView    = lazy(() => import('./views/AuctionRulesTabbedView').then(m => ({ default: m.AuctionRulesTabbedView })));
+const PlayerPoolTabbedView      = lazy(() => import('./views/PlayerPoolTabbedView').then(m => ({ default: m.PlayerPoolTabbedView })));
+const TeamManagementTabbedView  = lazy(() => import('./views/TeamManagementTabbedView').then(m => ({ default: m.TeamManagementTabbedView })));
+const SettingsTabbedView        = lazy(() => import('./views/SettingsTabbedView').then(m => ({ default: m.SettingsTabbedView })));
+const PlayerProfileView         = lazy(() => import('./views/PlayerProfileView').then(m => ({ default: m.PlayerProfileView })));
+const ManagerProfileView        = lazy(() => import('./views/ManagerProfileView').then(m => ({ default: m.ManagerProfileView })));
+const TeamPerformanceStatsView  = lazy(() => import('./views/TeamPerformanceStatsView').then(m => ({ default: m.TeamPerformanceStatsView })));
+const TournamentSettingsView    = lazy(() => import('./views/TournamentSettingsView').then(m => ({ default: m.TournamentSettingsView })));
+
+// Shared loading fallback for Suspense
+function ViewLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '300px',
+      color: '#64748b',
+      fontSize: '0.9rem',
+      gap: '10px'
+    }}>
+      <div style={{
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        border: '2px solid rgba(0, 230, 153, 0.2)',
+        borderTopColor: 'var(--accent-green)',
+        animation: 'spin 0.7s linear infinite'
+      }} />
+      Loading…
+    </div>
+  );
+}
 
 function AppContent() {
   const { currentUser } = useAuth();
@@ -52,40 +77,31 @@ function AppContent() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showNukeModal, setShowNukeModal] = useState(false);
 
-  // Targets for deep linking
-  const [editPlayerTarget, setEditPlayerTarget] = useState(null);
-  const [editManagerTarget, setEditManagerTarget] = useState(null);
-
   // Get default route when role changes or DEFAULT is requested
   const getDefaultRouteForRole = (role) => {
     switch (role) {
-      case 'SUPER_ADMIN':
-        return 'SUPER_ADMIN_DASHBOARD';
-      case 'SUB_ADMIN':
-        return 'SUB_ADMIN_TEAMS';
-      case 'ICON_PLAYER':
-        return 'CAPTAIN_DASHBOARD';
-      case 'PLAYER':
-        return 'PLAYER_MY_PROFILE';
-      case 'TEAM_MANAGER':
-        return 'MANAGER_MY_TEAM';
-      case 'PODIUM_ADMIN':
-        return 'PODIUM_AUCTION_CONTROL';
+      case 'SUPER_ADMIN':   return 'SUPER_ADMIN_DASHBOARD';
+      case 'SUB_ADMIN':     return 'SUB_ADMIN_TEAMS';
+      case 'ICON_PLAYER':   return 'CAPTAIN_DASHBOARD';
+      case 'PLAYER':        return 'PLAYER_MY_PROFILE';
+      case 'TEAM_MANAGER':  return 'MANAGER_MY_TEAM';
+      case 'PODIUM_ADMIN':  return 'PODIUM_AUCTION_CONTROL';
       case 'SPECTATOR':
-      default:
-        return 'PUBLIC_HOME';
+      default:              return 'PUBLIC_HOME';
     }
   };
 
-  const effectiveRoute = activeRoute === 'DEFAULT' ? getDefaultRouteForRole(currentUser.role) : activeRoute;
+  const effectiveRoute = useMemo(
+    () => activeRoute === 'DEFAULT' ? getDefaultRouteForRole(currentUser.role) : activeRoute,
+    [activeRoute, currentUser.role]
+  );
 
-  // Sync active route when user role changes
+  // Redirect to home when role becomes SPECTATOR and current route is protected
   useEffect(() => {
-    if (activeRoute === 'DEFAULT') return;
     if (currentUser.role === 'SPECTATOR' && !effectiveRoute.startsWith('PUBLIC_')) {
       setActiveRoute('PUBLIC_HOME');
     }
-  }, [currentUser.role]);
+  }, [currentUser.role, effectiveRoute]);
 
   // Sub-Admin Phase 4 Lock Screen (Unlocked strictly during Phase 4: Tournament for SUB_ADMIN)
   const renderSubAdminLockedScreen = () => (
@@ -314,7 +330,9 @@ function AppContent() {
   if (isPublicLayout) {
     return (
       <PublicLayout activeRoute={effectiveRoute} setActiveRoute={setActiveRoute}>
-        {renderRouteView()}
+        <Suspense fallback={<ViewLoader />}>
+          {renderRouteView()}
+        </Suspense>
       </PublicLayout>
     );
   }
@@ -327,7 +345,9 @@ function AppContent() {
         <DynamicSidebar activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
         <main style={{ flex: 1, padding: '28px', width: '100%', maxWidth: '1600px', margin: '0 auto', overflowX: 'hidden' }}>
-          {renderRouteView()}
+          <Suspense fallback={<ViewLoader />}>
+            {renderRouteView()}
+          </Suspense>
         </main>
       </div>
 
@@ -335,8 +355,8 @@ function AppContent() {
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
         setActiveModule={setActiveRoute}
-        onEditPlayer={(p) => setEditPlayerTarget(p)}
-        onEditManager={(m) => setEditManagerTarget(m)}
+        onEditPlayer={() => {}}
+        onEditManager={() => {}}
       />
 
       {showNukeModal && <NukeModal onClose={() => setShowNukeModal(false)} />}

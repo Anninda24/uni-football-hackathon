@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const AuthContext = createContext();
 
@@ -65,7 +65,12 @@ export const PRESET_ACCOUNTS = {
 };
 
 const safeParse = (raw, fallback) => {
-  try { return JSON.parse(raw); } catch { return fallback; }
+  try {
+    const parsed = JSON.parse(raw);
+    return (parsed !== null && parsed !== undefined) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 export const AuthProvider = ({ children }) => {
@@ -74,11 +79,14 @@ export const AuthProvider = ({ children }) => {
     return saved ? safeParse(saved, PRESET_ACCOUNTS.SUPER_ADMIN) : PRESET_ACCOUNTS.SUPER_ADMIN;
   });
 
+  const prevEmailRef = useRef(null);
+
   useEffect(() => {
     localStorage.setItem('ff_current_user', JSON.stringify(currentUser));
 
-    // Automatically obtain real JWT token from backend for API authentication
-    if (currentUser?.email) {
+    // Only re-fetch JWT when the email actually changes (new login / role switch)
+    if (currentUser?.email && currentUser.email !== prevEmailRef.current) {
+      prevEmailRef.current = currentUser.email;
       fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

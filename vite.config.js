@@ -8,5 +8,19 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React runtime — long-lived, rarely changes
+          'vendor-react': ['react', 'react-dom'],
+          // Icon library — large, separate chunk for better caching
+          'vendor-lucide': ['lucide-react'],
+          // Socket.IO client — only needed for auction pages
+          'vendor-socket': ['socket.io-client'],
+        }
+      }
+    }
   }
 })

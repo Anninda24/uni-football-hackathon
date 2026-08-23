@@ -62,9 +62,6 @@ export const SystemPhaseProvider = ({ children }) => {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('ff_system_phase', currentPhaseId);
-  }, [currentPhaseId]);
 
   const setPhase = (phaseId) => {
     const normalized = phaseId === 'THE_AUCTION' ? 'AUCTION' : phaseId;

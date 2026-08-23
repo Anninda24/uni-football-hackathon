@@ -39,10 +39,10 @@ export const NotificationsToast = () => {
             animation: 'fadeIn 0.2s ease-out'
           }}
         >
-          {n.type === 'success' && <CheckCircle2 size={20} color="var(--accent-green)" style={{ shrink: 0, marginTop: '2px' }} />}
-          {n.type === 'error' && <AlertCircle size={20} color="var(--accent-red)" style={{ shrink: 0, marginTop: '2px' }} />}
-          {n.type === 'warning' && <AlertTriangle size={20} color="var(--accent-gold)" style={{ shrink: 0, marginTop: '2px' }} />}
-          {n.type === 'info' && <Info size={20} color="var(--accent-cyan)" style={{ shrink: 0, marginTop: '2px' }} />}
+          {n.type === 'success' && <CheckCircle2 size={20} color="var(--accent-green)" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {n.type === 'error' && <AlertCircle size={20} color="var(--accent-red)" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {n.type === 'warning' && <AlertTriangle size={20} color="var(--accent-gold)" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {n.type === 'info' && <Info size={20} color="var(--accent-cyan)" style={{ flexShrink: 0, marginTop: '2px' }} />}
 
           <div>
             <h4 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0 }}>{n.title}</h4>

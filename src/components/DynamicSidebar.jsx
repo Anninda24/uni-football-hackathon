@@ -139,7 +139,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
               {currentUser.name}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {role.replace('_', ' ')}
+              {role.replaceAll('_', ' ')}
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 padding: '10px 14px',
                 borderRadius: '8px',
                 border: 'none',

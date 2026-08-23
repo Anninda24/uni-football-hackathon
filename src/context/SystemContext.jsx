@@ -285,7 +285,13 @@ const INITIAL_NEWS = [
 ];
 
 const safeParse = (raw, fallback) => {
-  try { return JSON.parse(raw); } catch { return fallback; }
+  try {
+    const parsed = JSON.parse(raw);
+    // JSON.parse('null') returns null — treat as missing and use fallback
+    return (parsed !== null && parsed !== undefined) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 export const SystemProvider = ({ children }) => {
