@@ -1,14 +1,11 @@
 ﻿import React, { useState } from 'react';
-import { X, Calendar, MapPin, RefreshCw } from 'lucide-react';
-
-const VENUES = ['Main Stadium', 'North Ground', 'East Arena', 'West Field', 'Training Complex'];
+import { X, Calendar, RefreshCw } from 'lucide-react';
 
 export function GenerateFixtureModal({ teams, onClose, onGenerate }) {
   const [teamAId, setTeamAId] = useState('');
   const [teamBId, setTeamBId] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('15:00');
-  const [venue, setVenue] = useState(VENUES[0]);
   const [twoLegged, setTwoLegged] = useState(false);
   const [leg2Date, setLeg2Date] = useState('');
   const [leg2Time, setLeg2Time] = useState('15:00');
@@ -22,7 +19,7 @@ export function GenerateFixtureModal({ teams, onClose, onGenerate }) {
     setError('');
     setLoading(true);
     try {
-      await onGenerate({ teamAId, teamBId, date, time, venue, twoLegged, leg2Date, leg2Time });
+      await onGenerate({ teamAId, teamBId, date, time, venue: 'Main Stadium', twoLegged, leg2Date, leg2Time });
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to schedule fixture.');
@@ -74,16 +71,6 @@ export function GenerateFixtureModal({ teams, onClose, onGenerate }) {
             <div className="form-group">
               <label className="form-label">Time</label>
               <input type="time" className="form-control" value={time} onChange={e => setTime(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label">Venue</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MapPin size={14} color="var(--accent-green)" />
-              <select className="form-control" value={venue} onChange={e => setVenue(e.target.value)}>
-                {VENUES.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
             </div>
           </div>
 

@@ -46,13 +46,9 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
 
       case 'SUB_ADMIN':
         return [
-          { id: 'SUB_ADMIN_TEAMS', label: 'Teams', icon: Trophy },
-          { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'SUB_ADMIN_MATCHES', label: 'Matches', icon: Calendar },
           { id: 'SUB_ADMIN_STANDINGS', label: 'Standings', icon: TrendingUp },
-          { id: 'SUB_ADMIN_STATISTICS', label: 'Statistics', icon: Award },
-          { id: 'SUB_ADMIN_PLAYERS', label: 'Players', icon: Users },
-          { id: 'SUB_ADMIN_SETTINGS', label: 'Tournament Settings', icon: Settings }
+          { id: 'SUB_ADMIN_STATISTICS', label: 'Statistics', icon: Award }
         ];
 
       case 'ICON_PLAYER':
