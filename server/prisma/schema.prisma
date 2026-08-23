@@ -183,6 +183,7 @@ model TournamentGroup {
   name      String
   color     String      @default("#3b82f6")
   phase     String      @default("GROUP_STAGE")
+  teamIds   String      @default("")
   teams     GroupTeam[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
