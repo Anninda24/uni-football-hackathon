@@ -114,12 +114,19 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
   return (
     <aside style={{
       width: '260px',
+      minWidth: '260px',
       background: 'rgba(15, 23, 42, 0.95)',
       borderRight: '1px solid rgba(255, 255, 255, 0.08)',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: 'calc(100vh - 70px)',
-      padding: '20px 14px'
+      height: 'calc(100vh - 70px)',
+      position: 'fixed',
+      top: '70px',
+      left: '0',
+      overflowY: 'auto',
+      padding: '20px 14px',
+      flexShrink: 0,
+      zIndex: 50
     }}>
       {/* Sidebar Role Header & Auth Action */}
       <div style={{

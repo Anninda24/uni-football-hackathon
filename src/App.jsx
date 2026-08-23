@@ -145,7 +145,7 @@ function AppContent() {
       case 'SUPER_ADMIN_PLAYER_POOL_CATEGORY':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerPoolTabbedView />
+            <PlayerPoolTabbedView onSendToPodium={() => setActiveRoute('PODIUM_AUCTION_CONTROL')} />
           </ProtectedRoute>
         );
 
@@ -203,7 +203,7 @@ function AppContent() {
       case 'PODIUM_PLAYER_POOL':
         return (
           <ProtectedRoute allowedRoles={['PODIUM_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerDirectoryView />
+            <PlayerDirectoryView onSendToPodium={() => setActiveRoute('PODIUM_AUCTION_CONTROL')} />
           </ProtectedRoute>
         );
 
@@ -316,7 +316,7 @@ function AppContent() {
       case 'PLAYER_DIRECTORY':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SUB_ADMIN', 'PODIUM_ADMIN', 'ICON_PLAYER', 'PLAYER', 'TEAM_MANAGER']} onUnauthorizedRedirect={setActiveRoute}>
-            <PlayerDirectoryView />
+            <PlayerDirectoryView onSendToPodium={() => setActiveRoute('PODIUM_AUCTION_CONTROL')} />
           </ProtectedRoute>
         );
 
@@ -341,10 +341,10 @@ function AppContent() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-dark, #0b0f19)', color: 'var(--text-main, #f8fafc)' }}>
       <Header activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 'calc(100vh - 70px)' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: 'calc(100vh - 70px)' }}>
         <DynamicSidebar activeRoute={effectiveRoute} setActiveRoute={setActiveRoute} />
 
-        <main style={{ flex: 1, padding: '28px', width: '100%', maxWidth: '1600px', margin: '0 auto', overflowX: 'hidden' }}>
+        <main style={{ flex: 1, marginLeft: '260px', padding: '28px', overflowY: 'auto', overflowX: 'hidden' }}>
           <Suspense fallback={<ViewLoader />}>
             {renderRouteView()}
           </Suspense>

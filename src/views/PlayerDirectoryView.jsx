@@ -17,7 +17,8 @@ import {
   AlertCircle,
   FileSpreadsheet,
   ShieldAlert,
-  Eye
+  Eye,
+  ArrowUpFromLine
 } from 'lucide-react';
 
 const POSITIONS = [
@@ -33,7 +34,7 @@ const POSITIONS = [
   { code: 'ST', name: 'Striker' }
 ];
 
-export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
+export const PlayerDirectoryView = ({ initialEditPlayer = null, onSendToPodium }) => {
   const {
     systemState,
     players,
@@ -42,7 +43,9 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     deletePlayer,
     bulkImportPlayers,
     addNotification,
-    teams
+    teams,
+    pullPlayerToPodium,
+    auctionState
   } = useSystem();
   const { currentUser } = useAuth();
 
@@ -255,16 +258,6 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {isAdmin && (
-              <button onClick={() => setShowBulkImportModal(true)} className="btn btn-secondary" style={{ fontSize: '0.82rem' }}>
-                <FileSpreadsheet size={16} color="var(--accent-cyan)" /> Bulk CSV/Excel Importer
-              </button>
-            )}
-            {isAdmin && (
-              <button onClick={handleOpenAdd} className="btn btn-primary">
-                <Plus size={18} /> + Add Player
-              </button>
-            )}
           </div>
         </div>
 
@@ -475,6 +468,25 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                               <Ban size={14} />
                             </button>
                           )}
+                          {['SUPER_ADMIN', 'PODIUM_ADMIN'].includes(currentUser.role) && player.status === 'APPROVED' && (
+                            <button
+                              onClick={() => {
+                                pullPlayerToPodium(player.id);
+                                addNotification('success', 'Sent to Podium', `${player.name} is now on the live auction stage.`);
+                                onSendToPodium?.();
+                              }}
+                              className="btn"
+                              style={{
+                                padding: '6px 10px', fontSize: '0.75rem',
+                                background: auctionState?.activePlayerId === player.id ? 'rgba(255,183,3,0.2)' : 'rgba(0,230,153,0.12)',
+                                border: `1px solid ${auctionState?.activePlayerId === player.id ? 'var(--accent-gold)' : 'var(--accent-green)'}`,
+                                color: auctionState?.activePlayerId === player.id ? 'var(--accent-gold)' : 'var(--accent-green)',
+                              }}
+                              title={auctionState?.activePlayerId === player.id ? 'Currently on stage' : 'Send to Podium'}
+                            >
+                              <ArrowUpFromLine size={14} />
+                            </button>
+                          )}
                         </div>
 
                       </div>
@@ -557,6 +569,21 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
                               <button onClick={() => setSelectedPlayerDetail(player)} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Eye size={14} /></button>
                               {isAdmin && <button onClick={() => toggleBanPlayer(player.id)} className={`btn ${player.status === 'BANNED' ? 'btn-gold' : 'btn-danger'}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Ban size={14} /></button>}
                               {isAdmin && <button onClick={() => setConfirmDeletePlayer(player)} className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }}><Trash2 size={14} /></button>}
+                              {['SUPER_ADMIN', 'PODIUM_ADMIN'].includes(currentUser.role) && player.status === 'APPROVED' && (
+                                <button
+                                  onClick={() => { pullPlayerToPodium(player.id); addNotification('success', 'Sent to Podium', `${player.name} is now on the live auction stage.`); onSendToPodium?.(); }}
+                                  className="btn"
+                                  style={{
+                                    padding: '4px 8px', fontSize: '0.75rem',
+                                    background: auctionState?.activePlayerId === player.id ? 'rgba(255,183,3,0.2)' : 'rgba(0,230,153,0.12)',
+                                    border: `1px solid ${auctionState?.activePlayerId === player.id ? 'var(--accent-gold)' : 'var(--accent-green)'}`,
+                                    color: auctionState?.activePlayerId === player.id ? 'var(--accent-gold)' : 'var(--accent-green)',
+                                  }}
+                                  title="Send to Podium"
+                                >
+                                  <ArrowUpFromLine size={14} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

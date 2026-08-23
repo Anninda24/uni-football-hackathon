@@ -3,7 +3,7 @@ import { Users, Layers, ListFilter } from 'lucide-react';
 import { CategoryManagerView } from './CategoryManagerView';
 import { PlayerDirectoryView } from './PlayerDirectoryView';
 
-export const PlayerPoolTabbedView = ({ initialEditPlayer = null }) => {
+export const PlayerPoolTabbedView = ({ initialEditPlayer = null, onSendToPodium }) => {
   const [activeTab, setActiveTab] = useState(initialEditPlayer ? 'PLAYERS' : 'CATEGORIES');
 
   const tabs = [
@@ -59,7 +59,7 @@ export const PlayerPoolTabbedView = ({ initialEditPlayer = null }) => {
       {/* Tab Content */}
       <div>
         {activeTab === 'CATEGORIES' && <CategoryManagerView />}
-        {activeTab === 'PLAYERS' && <PlayerDirectoryView initialEditPlayer={initialEditPlayer} />}
+        {activeTab === 'PLAYERS' && <PlayerDirectoryView initialEditPlayer={initialEditPlayer} onSendToPodium={onSendToPodium} />}
       </div>
     </div>
   );

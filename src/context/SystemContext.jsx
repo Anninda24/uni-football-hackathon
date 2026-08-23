@@ -426,6 +426,16 @@ export const SystemProvider = ({ children }) => {
     localStorage.setItem('ff_news', JSON.stringify(news));
   }, [news]);
 
+  // Budget Ledger (Stream of manual budget adjustments)
+  const [budgetLedger, setBudgetLedger] = useState(() => {
+    const saved = localStorage.getItem('ff_budget_ledger');
+    return safeParse(saved, []);
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ff_budget_ledger', JSON.stringify(budgetLedger));
+  }, [budgetLedger]);
+
   // Toast Notification Helper
   const addNotification = (type, title, message) => {
     const id = Date.now() + Math.random();
@@ -439,6 +449,53 @@ export const SystemProvider = ({ children }) => {
   const changePhase = (newPhase) => {
     setSystemState(prev => ({ ...prev, currentPhase: newPhase }));
     addNotification('info', 'Phase Changed', `System phase transitioned to ${newPhase}`);
+  };
+
+  const adjustTeamBudget = (teamId, amount, reason) => {
+    setTeams(prev => prev.map(t => {
+      if (t.id === teamId) {
+        return { ...t, budget: t.budget + amount };
+      }
+      return t;
+    }));
+    
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      setBudgetLedger(prev => [{
+        id: 'badj-' + Date.now(),
+        teamId,
+        teamName: team.name,
+        teamLogo: team.logo,
+        amount,
+        reason,
+        timestamp: new Date().toLocaleTimeString()
+      }, ...prev]);
+      addNotification('success', 'Budget Adjusted', `${team.name} budget adjusted by $${amount.toLocaleString()}`);
+    }
+  };
+
+  const randomToPodium = () => {
+    const unsoldPlayers = players.filter(p => p.status === 'APPROVED' && p.categoryId !== 'cat-icon');
+    if (unsoldPlayers.length === 0) {
+      addNotification('warning', 'No Players', 'No available players to send to podium.');
+      return;
+    }
+    const randomPlayer = unsoldPlayers[Math.floor(Math.random() * unsoldPlayers.length)];
+    pullPlayerToPodium(randomPlayer.id);
+  };
+
+  const resetAuctionState = () => {
+    setAuctionState({
+      activePlayerId: null,
+      mode: 'NORMAL',
+      timer: 30,
+      isTimerRunning: false,
+      currentBid: 0,
+      highBidderTeamId: null,
+      blindBids: [],
+      auctionStatus: 'IDLE'
+    });
+    addNotification('info', 'Auction Reset', 'Auction state has been reset to IDLE.');
   };
 
   // --- DYNAMIC BIDDING MATH ENGINE ---
@@ -1029,6 +1086,7 @@ export const SystemProvider = ({ children }) => {
       auctionState,
       setAuctionState,
       auctionLedger,
+      budgetLedger,
       fixtures,
       setFixtures,
       news,
@@ -1048,7 +1106,10 @@ export const SystemProvider = ({ children }) => {
       addAcademicSession,
       removeAcademicSession,
       addPosition,
-      removePosition
+      removePosition,
+      adjustTeamBudget,
+      randomToPodium,
+      resetAuctionState
     }}>
       {children}
     </SystemContext.Provider>
