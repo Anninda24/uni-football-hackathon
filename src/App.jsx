@@ -41,6 +41,13 @@ const ManagerProfileView        = lazy(() => import('./views/ManagerProfileView'
 const TeamPerformanceStatsView  = lazy(() => import('./views/TeamPerformanceStatsView').then(m => ({ default: m.TeamPerformanceStatsView })));
 const TournamentSettingsView    = lazy(() => import('./views/TournamentSettingsView').then(m => ({ default: m.TournamentSettingsView })));
 
+// Sub-Admin Integration Views
+const SAMatchesView            = lazy(() => import('./views/SAMatchesView').then(m => ({ default: m.default || m.SAMatchesView })));
+const SATeamsView              = lazy(() => import('./views/SATeamsView').then(m => ({ default: m.default || m.SATeamsView })));
+const SAStandingsView          = lazy(() => import('./views/SAStandingsView').then(m => ({ default: m.default || m.SAStandingsView })));
+const SAStatisticsView         = lazy(() => import('./views/SAStatisticsView').then(m => ({ default: m.default || m.SAStatisticsView })));
+const SATournamentSettingsView = lazy(() => import('./views/SATournamentSettingsView').then(m => ({ default: m.default || m.SATournamentSettingsView })));
+
 // Shared loading fallback for Suspense
 function ViewLoader() {
   return (
@@ -167,35 +174,35 @@ function AppContent() {
       case 'SUB_ADMIN_TEAMS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <FranchiseTeamView />}
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <SATeamsView />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_MATCHES':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="MATCHES" showTabs={false} />}
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <SAMatchesView />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STANDINGS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="STANDINGS" showTabs={false} />}
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <SAStandingsView />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_STATISTICS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentView defaultTab="STATS" showTabs={false} />}
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <SAStatisticsView />}
           </ProtectedRoute>
         );
 
       case 'SUB_ADMIN_SETTINGS':
         return (
           <ProtectedRoute allowedRoles={['SUB_ADMIN', 'SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <TournamentSettingsView />}
+            {!isTournament && currentUser.role === 'SUB_ADMIN' ? renderSubAdminLockedScreen() : <SATournamentSettingsView />}
           </ProtectedRoute>
         );
 
