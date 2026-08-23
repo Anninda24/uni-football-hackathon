@@ -130,11 +130,11 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
             </button>
           )}
 
-          {/* Login Button — Always Available */}
+          {/* Registration / Login Button */}
           <button
             onClick={() => setActiveRoute('PUBLIC_LOGIN')}
             style={{
-              background: activeRoute === 'PUBLIC_LOGIN' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.8)',
+              background: activeRoute === 'PUBLIC_LOGIN' ? 'rgba(59, 130, 246, 0.25)' : 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.15) 100%)',
               border: '1px solid rgba(59, 130, 246, 0.4)',
               color: '#60a5fa',
               borderRadius: '8px',
@@ -145,36 +145,13 @@ export function PublicLayout({ activeRoute, setActiveRoute, children }) {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 10px rgba(59, 130, 246, 0.2)'
             }}
           >
             <LogIn style={{ width: '15px', height: '15px' }} />
-            <span>Login</span>
+            <span>Registration / Login</span>
           </button>
-
-          {/* Register Button — ONLY shown in Phase 2: Registration */}
-          {isRegistration && (
-            <button
-              onClick={() => setActiveRoute('PUBLIC_REGISTER')}
-              style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <UserPlus style={{ width: '15px', height: '15px' }} />
-              <span>Register</span>
-            </button>
-          )}
         </div>
       </nav>
 

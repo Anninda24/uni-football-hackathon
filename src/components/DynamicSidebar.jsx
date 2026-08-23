@@ -21,7 +21,8 @@ import {
   Lock,
   TrendingUp,
   Shield,
-  UserSearch
+  UserSearch,
+  Layers
 } from 'lucide-react';
 
 export function DynamicSidebar({ activeRoute, setActiveRoute }) {
@@ -37,7 +38,7 @@ export function DynamicSidebar({ activeRoute, setActiveRoute }) {
         return [
           { id: 'SUPER_ADMIN_DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'SUPER_ADMIN_AUCTION_RULES', label: 'Auction Rules', icon: Gavel },
-          { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Player Pool and Category', icon: Users },
+          { id: 'SUPER_ADMIN_PLAYER_POOL_CATEGORY', label: 'Tier & Category Manager', icon: Layers },
           { id: 'PLAYER_DIRECTORY', label: 'Player Directory', icon: UserSearch },
           { id: 'SUPER_ADMIN_TEAM_MANAGEMENT', label: 'Team Management', icon: Trophy },
           { id: 'SUPER_ADMIN_SETTINGS', label: 'Settings', icon: Settings }

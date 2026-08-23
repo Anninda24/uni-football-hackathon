@@ -9,7 +9,26 @@ export const PlayerProfileView = () => {
 
   const positions = systemState.positions || [];
 
-  const myPlayer = players.find(p => p.id === currentUser.id || p.email === currentUser.email);
+  const myPlayer = players.find(p => 
+    p.id === currentUser?.id || 
+    (p.email && p.email.toLowerCase() === currentUser?.email?.toLowerCase()) ||
+    (currentUser?.studentId && p.studentId === currentUser.studentId)
+  ) || (currentUser?.role === 'PLAYER' || currentUser?.role === 'ICON_PLAYER' ? {
+    id: currentUser.id,
+    name: currentUser.name || 'Athlete',
+    email: currentUser.email || '',
+    studentId: currentUser.studentId || 'N/A',
+    session: '2025/2026',
+    jerseyName: currentUser.name?.toUpperCase() || 'PLAYER',
+    jerseyNumber: '10',
+    primaryPosition: 'ST',
+    secondaryPositions: [],
+    imageUrl: '',
+    categoryId: null,
+    basePrice: 0,
+    status: 'APPROVED',
+    soldToTeamId: null
+  } : null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({

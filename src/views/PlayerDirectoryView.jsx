@@ -52,11 +52,13 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
 
   const resolveAssignedTeamId = () => {
     if (currentUser?.role === 'TEAM_MANAGER') {
-      const managed = teams.find(t => t.managerId === currentUser.id) || teams.find(t => t.id === currentUser.teamId);
-      return managed?.id || null;
+      const managed = teams.find(t => t.managerId === currentUser.id) || 
+                      teams.find(t => t.id === currentUser.teamId) ||
+                      teams.find(t => t.managerEmail && t.managerEmail.toLowerCase() === currentUser?.email?.toLowerCase());
+      return managed?.id || teams[0]?.id || null;
     }
-    const myPlayer = players.find(p => p.id === currentUser?.id || p.email === currentUser?.email);
-    return myPlayer?.soldToTeamId || currentUser?.teamId || null;
+    const myPlayer = players.find(p => p.id === currentUser?.id || (p.email && p.email.toLowerCase() === currentUser?.email?.toLowerCase()) || (currentUser?.studentId && p.studentId === currentUser.studentId));
+    return myPlayer?.soldToTeamId || currentUser?.teamId || teams[0]?.id || null;
   };
 
   const assignedTeamId = resolveAssignedTeamId();
@@ -91,7 +93,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
     jerseyNumber: '10',
     primaryPosition: 'ST',
     secondaryPositions: [],
-    categoryId: systemState.categories[0]?.id || 'cat-plat',
+    categoryId: '',
     imageUrl: ''
   });
   const [imagePreview, setImagePreview] = useState('');
@@ -107,7 +109,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
       jerseyNumber: '10',
       primaryPosition: 'ST',
       secondaryPositions: [],
-      categoryId: systemState.categories[0]?.id || 'cat-plat',
+      categoryId: '',
       imageUrl: ''
     });
     setImagePreview('');
@@ -124,7 +126,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
       jerseyNumber: player.jerseyNumber || '10',
       primaryPosition: player.primaryPosition,
       secondaryPositions: player.secondaryPositions || [],
-      categoryId: player.categoryId,
+      categoryId: player.categoryId || '',
       imageUrl: player.imageUrl
     });
     setImagePreview(player.imageUrl);
@@ -157,39 +159,49 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
       return;
     }
 
-
-
-    const category = systemState.categories.find(c => c.id === formData.categoryId) || systemState.categories[0];
+    const category = formData.categoryId ? systemState.categories.find(c => c.id === formData.categoryId) : null;
     const defaultImg = 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&auto=format&fit=crop&q=80';
 
     if (editingPlayer) {
       setPlayers(prev => prev.map(p => p.id === editingPlayer.id ? {
         ...p,
         ...formData,
+        categoryId: formData.categoryId || null,
         imageUrl: formData.imageUrl || p.imageUrl || defaultImg,
-        basePrice: category ? category.basePrice : 10000
+        basePrice: category ? category.basePrice : 0
       } : p));
       addNotification('success', 'Player Profile Saved', `${formData.name} profile updated.`);
     } else {
       const newP = {
         id: 'ply-' + Date.now(),
         ...formData,
+        categoryId: formData.categoryId || null,
         imageUrl: formData.imageUrl || defaultImg,
         cloudPublicId: 'cld_ply_' + Date.now(),
-        basePrice: category ? category.basePrice : 10000,
+        basePrice: category ? category.basePrice : 0,
         status: 'APPROVED',
         soldToTeamId: null,
         soldAmount: 0
       };
       setPlayers(prev => [newP, ...prev]);
-      addNotification('success', 'Player Registered', `${formData.name} added to auction pool.`);
+      addNotification('success', 'Player Registered', `${formData.name} added to ${category ? category.name : 'Unallocated'}.`);
     }
 
     setShowFormModal(false);
   };
 
   const handleAssignCategory = (playerId, categoryId) => {
-    setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, categoryId } : p));
+    setPlayers(prev => prev.map(p => {
+      if (p.id === playerId) {
+        const cat = categoryId ? systemState.categories.find(c => c.id === categoryId) : null;
+        return {
+          ...p,
+          categoryId: categoryId || null,
+          basePrice: cat ? cat.basePrice : 0
+        };
+      }
+      return p;
+    }));
     const cat = categoryId ? systemState.categories.find(c => c.id === categoryId) : null;
     const player = players.find(p => p.id === playerId);
     if (cat && player) {
@@ -217,7 +229,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
       p.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.jerseyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchPos = filterPosition === 'ALL' || p.primaryPosition === filterPosition;
-    const matchCat = filterCategory === 'ALL' || p.categoryId === filterCategory;
+    const matchCat = filterCategory === 'ALL' || (filterCategory === 'UNALLOCATED' ? (!p.categoryId || p.categoryId === 'unallocated') : p.categoryId === filterCategory);
     const matchSess = filterSession === 'ALL' || p.session === filterSession;
     return matchSearch && matchPos && matchCat && matchSess;
   });
@@ -327,6 +339,7 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', padding: '6px 10px', fontSize: '0.8rem', outline: 'none' }}
           >
             <option value="ALL">All Tiers</option>
+            <option value="UNALLOCATED">Unallocated</option>
             {systemState.categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -669,14 +682,17 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Assigned Tier</label>
+                  <label className="form-label">Assigned Tier / Category</label>
                   <select
                     className="form-control"
-                    value={formData.categoryId}
+                    value={formData.categoryId || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
                   >
+                    <option value="">Unallocated (No Tier Assigned)</option>
                     {systemState.categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.basePrice ? `($${c.basePrice.toLocaleString()})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -796,8 +812,23 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null, readOnly = false
             </div>
 
               <div style={{ background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
+                {(() => {
+                  const cat = systemState.categories.find(c => c.id === selectedPlayerDetail.categoryId);
+                  return (
+                    <div>
+                      Tier Classification: <span className="badge" style={{
+                        marginLeft: '4px',
+                        background: cat ? `${cat.color}25` : 'rgba(255,255,255,0.1)',
+                        color: cat ? cat.color : '#94a3b8',
+                        border: `1px solid ${cat ? `${cat.color}50` : 'rgba(255,255,255,0.2)'}`
+                      }}>
+                        {cat ? cat.name : 'Unallocated'} {cat?.basePrice ? `($${cat.basePrice.toLocaleString()})` : ''}
+                      </span>
+                    </div>
+                  );
+                })()}
                 <div>Primary Position: <span className="badge badge-green">{selectedPlayerDetail.primaryPosition}</span></div>
-                <div>Secondary Positions: {selectedPlayerDetail.secondaryPositions?.map(s => <span key={s} className="badge badge-cyan" style={{ marginRight: '4px' }}>{s}</span>)}</div>
+                <div>Secondary Positions: {selectedPlayerDetail.secondaryPositions?.length > 0 ? selectedPlayerDetail.secondaryPositions.map(s => <span key={s} className="badge badge-cyan" style={{ marginRight: '4px' }}>{s}</span>) : <span style={{ color: 'var(--text-dim)' }}>None</span>}</div>
                 <div>Cloud Asset ID: <code style={{ color: 'var(--accent-cyan)' }}>{selectedPlayerDetail.cloudPublicId}</code></div>
               </div>
 
