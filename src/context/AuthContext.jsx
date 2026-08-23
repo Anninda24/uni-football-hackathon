@@ -108,6 +108,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (usernameOrEmail, password, preferredRole = null) => {
     const query = (usernameOrEmail || '').toLowerCase().trim();
     
+    // Direct preferred role preset check for seamless demo switcher execution
+    if (preferredRole && PRESET_ACCOUNTS[preferredRole]) {
+      const presetUser = PRESET_ACCOUNTS[preferredRole];
+      setCurrentUser(presetUser);
+      return { success: true, user: presetUser };
+    }
+
     // Check backend login first if user provided password
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {

@@ -74,9 +74,11 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
 
   const handlePresetSelect = async (roleKey) => {
     const acc = PRESET_ACCOUNTS[roleKey];
-    const res = await login(acc.email, 'password', roleKey);
-    if (res?.success && onLoginSuccess) {
-      onLoginSuccess();
+    if (acc) {
+      const res = await login(acc.email, '123456', roleKey);
+      if (res?.success && onLoginSuccess) {
+        onLoginSuccess();
+      }
     }
   };
 
