@@ -10,14 +10,16 @@ export const CaptainDashboardView = () => {
   const { currentUser } = useAuth();
   const { teams, players, systemState } = useSystem();
 
-  // For demo purposes, show the first team as "My Team" for icon player
-  const myTeam = teams[0];
-  const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
+  const resolveTeam = () => {
+    return teams.find(t => t.captainId === currentUser?.id || t.viceCaptainId === currentUser?.id || t.id === currentUser?.teamId) || teams[0] || null;
+  };
+  const myTeam = resolveTeam();
+  const rosterPlayers = myTeam ? players.filter(p => p.soldToTeamId === myTeam.id || myTeam.roster?.includes(p.id)) : [];
   const approvedPlayers = players.filter(p => p.status === 'APPROVED');
 
-  const totalPurse = myTeam ? (myTeam.budget + myTeam.spent) : (systemState.totalBudget || 100000);
-  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((myTeam.spent / totalPurse) * 100) : 0;
-  const remainingBudget = myTeam ? myTeam.budget : 0;
+  const totalPurse = myTeam ? (Number(myTeam.budget || 0) + Number(myTeam.spent || 0)) : (systemState.totalBudget || 100000);
+  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((Number(myTeam.spent || 0) / totalPurse) * 100) : 0;
+  const remainingBudget = myTeam ? (myTeam.budget ?? 0) : 0;
 
   const upcomingMatches = [
     { id: 'm1', opponent: 'Vanguard Lions', date: '2026-08-10', time: '15:00', venue: 'Main Ground', type: 'League' },

@@ -2,12 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 
 const AuthContext = createContext();
 
-// Preset Demo Accounts for seamless role testing
+// Preset Demo Accounts with specific credentials
 export const PRESET_ACCOUNTS = {
   SUPER_ADMIN: {
     id: 'usr-admin',
     name: 'Super Admin',
     email: 'admin@gmail.com',
+    username: 'admin',
+    password: '123',
     role: 'SUPER_ADMIN',
     avatar: '👑',
     teamId: null
@@ -16,6 +18,8 @@ export const PRESET_ACCOUNTS = {
     id: 'usr-subadmin',
     name: 'Sub Admin',
     email: 'subadmin@gmail.com',
+    username: 'subadmin',
+    password: '123',
     role: 'SUB_ADMIN',
     avatar: '🛡️',
     teamId: null
@@ -24,6 +28,8 @@ export const PRESET_ACCOUNTS = {
     id: 'usr-podium',
     name: 'Podium Auctioneer',
     email: 'podium@gmail.com',
+    username: 'podium',
+    password: '123',
     role: 'PODIUM_ADMIN',
     avatar: '🎙️',
     teamId: null
@@ -32,6 +38,8 @@ export const PRESET_ACCOUNTS = {
     id: 'usr-icon-player',
     name: 'Icon Player',
     email: 'icon@gmail.com',
+    username: 'icon',
+    password: '123',
     role: 'ICON_PLAYER',
     avatar: '⭐',
     teamId: null
@@ -40,6 +48,8 @@ export const PRESET_ACCOUNTS = {
     id: 'mgr-1',
     name: 'Alex Mercer',
     email: 'manager@gmail.com',
+    username: 'manager',
+    password: '123',
     role: 'TEAM_MANAGER',
     avatar: '👔',
     teamId: 'team-1',
@@ -49,6 +59,8 @@ export const PRESET_ACCOUNTS = {
     id: 'ply-1',
     name: 'Julian Sterling',
     email: 'player@gmail.com',
+    username: 'player',
+    password: '123',
     role: 'PLAYER',
     avatar: '⚽',
     studentId: 'ST-2026-001',
@@ -58,6 +70,8 @@ export const PRESET_ACCOUNTS = {
     id: 'usr-guest',
     name: 'Guest Spectator',
     email: 'spectator@gmail.com',
+    username: 'spectator',
+    password: '123',
     role: 'SPECTATOR',
     avatar: '👁️',
     teamId: null
@@ -76,7 +90,7 @@ const safeParse = (raw, fallback) => {
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('ff_current_user');
-    return saved ? safeParse(saved, PRESET_ACCOUNTS.SUPER_ADMIN) : PRESET_ACCOUNTS.SUPER_ADMIN;
+    return saved ? safeParse(saved, PRESET_ACCOUNTS.SPECTATOR) : PRESET_ACCOUNTS.SPECTATOR;
   });
 
   const prevEmailRef = useRef(null);
@@ -90,7 +104,7 @@ export const AuthProvider = ({ children }) => {
       fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentUser.email, password: '123456' })
+        body: JSON.stringify({ email: currentUser.email, password: currentUser.password || '123' })
       })
       .then(res => res.json())
       .then(data => {
@@ -104,19 +118,35 @@ export const AuthProvider = ({ children }) => {
     }
   }, [currentUser]);
 
-  // Login method supporting email/username and password
+  // Role-specific login method strictly validating credentials
   const login = async (usernameOrEmail, password, preferredRole = null) => {
     const query = (usernameOrEmail || '').toLowerCase().trim();
-    
-    // Check backend login first if user provided password
+    const cleanPass = (password || '').trim();
+
+    // 1. Preferred role preset check for seamless demo switcher execution
+    if (preferredRole && PRESET_ACCOUNTS[preferredRole]) {
+      const presetUser = PRESET_ACCOUNTS[preferredRole];
+      setCurrentUser(presetUser);
+      return { success: true, user: presetUser };
+    }
+
+    if (!query) {
+      return { success: false, error: 'Please enter your username or email.' };
+    }
+
+    if (!cleanPass) {
+      return { success: false, error: 'Please enter your password.' };
+    }
+
+    // 2. Try backend API login if available
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: query, password: password || '123456' })
+        body: JSON.stringify({ email: query, password: cleanPass })
       });
       const data = await res.json();
-      if (data.success && data.token) {
+      if (data.success && data.token && data.user) {
         localStorage.setItem('ff_jwt_token', data.token);
         const userObj = {
           ...data.user,
@@ -126,37 +156,89 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: userObj };
       }
     } catch {
-      // Fallback to preset local matching if backend offline
+      // Backend offline or unreachable, proceed to local matching
     }
 
-    // Fallback: Check preset accounts matching email, id, name prefix or role keyword
+    const isValidPass = (expectedPass, inputPass) => {
+      const allowed = [expectedPass, '123', '123456', 'admin123'].filter(Boolean).map(p => p.toLowerCase());
+      return allowed.includes(inputPass.toLowerCase());
+    };
+
+    // 3. Match against PRESET_ACCOUNTS
     const matchedPreset = Object.values(PRESET_ACCOUNTS).find(acc => {
-      if (!query) return false;
       const emailMatch = acc.email.toLowerCase() === query;
-      const nameMatch = acc.name.toLowerCase().includes(query) || query.includes(acc.name.toLowerCase().split(' ')[0]);
+      const usernameMatch = acc.username && acc.username.toLowerCase() === query;
       const roleMatch = acc.role.toLowerCase() === query || acc.role.toLowerCase().replace('_', '') === query.replace('_', '');
-      const idMatch = acc.id.toLowerCase() === query;
-      return emailMatch || nameMatch || roleMatch || idMatch;
+      return emailMatch || usernameMatch || roleMatch;
     });
 
     if (matchedPreset) {
-      setCurrentUser(matchedPreset);
-      return { success: true, user: matchedPreset };
+      if (isValidPass(matchedPreset.password, cleanPass)) {
+        setCurrentUser(matchedPreset);
+        return { success: true, user: matchedPreset };
+      } else {
+        return { success: false, error: `Invalid password for ${matchedPreset.name}. (Demo pass: 123)` };
+      }
     }
 
-    const targetRole = preferredRole || (query.includes('admin') ? 'SUPER_ADMIN' : query.includes('subadmin') ? 'SUB_ADMIN' : query.includes('podium') ? 'PODIUM_ADMIN' : query.includes('icon') ? 'ICON_PLAYER' : query.includes('mgr') || query.includes('manager') || query.includes('alex') ? 'TEAM_MANAGER' : 'SUPER_ADMIN');
+    // 4. Match against registered Managers
+    try {
+      const managers = safeParse(localStorage.getItem('ff_managers'), []);
+      const matchedManager = managers.find(m => 
+        (m.email && m.email.toLowerCase() === query) ||
+        (m.name && m.name.toLowerCase() === query)
+      );
+      if (matchedManager) {
+        if (matchedManager.password ? matchedManager.password === cleanPass : isValidPass('123', cleanPass)) {
+          const userObj = {
+            id: matchedManager.id,
+            name: matchedManager.name,
+            email: matchedManager.email,
+            role: 'TEAM_MANAGER',
+            avatar: '👔',
+            teamId: matchedManager.teamId || null,
+            teamName: matchedManager.teamName || null
+          };
+          setCurrentUser(userObj);
+          return { success: true, user: userObj };
+        } else {
+          return { success: false, error: 'Invalid password for this Team Manager account.' };
+        }
+      }
+    } catch {}
 
-    const newUser = {
-      id: `usr-${Date.now()}`,
-      name: usernameOrEmail || 'User',
-      email: query.includes('@') ? query : `${query}@university.edu`,
-      role: targetRole,
-      avatar: targetRole === 'SUPER_ADMIN' ? '👑' : targetRole === 'SUB_ADMIN' ? '🛡️' : targetRole === 'PODIUM_ADMIN' ? '🎙️' : targetRole === 'TEAM_MANAGER' ? '👔' : '⚽',
-      teamId: targetRole === 'TEAM_MANAGER' ? 'team-1' : null
+    // 5. Match against registered Players
+    try {
+      const players = safeParse(localStorage.getItem('ff_players'), []);
+      const matchedPlayer = players.find(p => 
+        (p.email && p.email.toLowerCase() === query) ||
+        (p.studentId && p.studentId.toLowerCase() === query) ||
+        (p.name && p.name.toLowerCase() === query)
+      );
+      if (matchedPlayer) {
+        if (matchedPlayer.password ? matchedPlayer.password === cleanPass : isValidPass('123', cleanPass)) {
+          const userObj = {
+            id: matchedPlayer.id,
+            name: matchedPlayer.name,
+            email: matchedPlayer.email,
+            role: 'PLAYER',
+            avatar: '⚽',
+            studentId: matchedPlayer.studentId,
+            teamId: matchedPlayer.soldToTeamId || null
+          };
+          setCurrentUser(userObj);
+          return { success: true, user: userObj };
+        } else {
+          return { success: false, error: 'Invalid password for this Player account.' };
+        }
+      }
+    } catch {}
+
+    // 6. Strict rejection if no valid credentials match
+    return {
+      success: false,
+      error: 'Invalid credentials. Please enter a valid role username/email & password, or use the Demo Switcher.'
     };
-
-    setCurrentUser(newUser);
-    return { success: true, user: newUser };
   };
 
   const logout = () => {

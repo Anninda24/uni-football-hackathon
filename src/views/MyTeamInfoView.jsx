@@ -29,24 +29,26 @@ export const MyTeamInfoView = () => {
 
   const role = currentUser.role;
 
-  let myTeam = null;
-  if (role === 'TEAM_MANAGER') {
-    myTeam = teams.find(t => t.managerId === currentUser.id || t.id === currentUser.teamId) || teams[0];
-  } else if (role === 'PLAYER') {
-    const me = players.find(p => p.id === currentUser.id);
-    myTeam = me?.soldToTeamId ? teams.find(t => t.id === me.soldToTeamId) : teams[0];
-  } else if (role === 'ICON_PLAYER') {
-    myTeam = teams.find(t => t.captainId === currentUser.id) || teams[0];
-  } else {
-    myTeam = teams[0];
-  }
+  const resolveMyTeam = () => {
+    if (currentUser?.role === 'TEAM_MANAGER') {
+      return teams.find(t => t.managerId === currentUser.id) ||
+             teams.find(t => t.id === currentUser.teamId) ||
+             teams.find(t => t.managerEmail?.toLowerCase() === currentUser?.email?.toLowerCase()) ||
+             teams[0] || null;
+    }
+    const myPlayer = players.find(p => p.id === currentUser?.id || p.email?.toLowerCase() === currentUser?.email?.toLowerCase() || (currentUser.studentId && p.studentId === currentUser.studentId));
+    const teamId = myPlayer?.soldToTeamId || currentUser?.teamId;
+    return teams.find(t => t.id === teamId) || teams[0] || null;
+  };
 
-  const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
-  const displayRoster = rosterPlayers.length > 0 ? rosterPlayers : [];
+  const myTeam = resolveMyTeam();
+  const displayRoster = myTeam
+    ? players.filter(p => p.soldToTeamId === myTeam.id || myTeam.roster?.includes(p.id))
+    : [];
 
-  const totalPurse = myTeam ? (myTeam.budget + myTeam.spent) : (systemState.totalBudget || 100000);
-  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((myTeam.spent / totalPurse) * 100) : 0;
-  const remainingBudget = myTeam ? myTeam.budget : 100000;
+  const totalPurse = myTeam ? (Number(myTeam.budget || 0) + Number(myTeam.spent || 0)) : (systemState.totalBudget || 100000);
+  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((Number(myTeam.spent || 0) / totalPurse) * 100) : 0;
+  const remainingBudget = myTeam ? (myTeam.budget ?? 100000) : 100000;
 
   const isManager = role === 'TEAM_MANAGER';
   const canAssignLeaders = isManager || role === 'SUPER_ADMIN' || role === 'SUB_ADMIN';

@@ -100,7 +100,7 @@ export function Header({ activeRoute, setActiveRoute }) {
               }}
             >
               <LogIn style={{ width: '14px', height: '14px' }} />
-              <span>Login / Register</span>
+              <span>Registration / Login</span>
             </button>
           )}
         </div>

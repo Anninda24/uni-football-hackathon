@@ -1,4 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = typeof window !== 'undefined'
+  ? `${window.location.protocol}//${window.location.hostname}:5000`
+  : 'http://localhost:5000';
 
 const SystemContext = createContext();
 
@@ -389,9 +394,88 @@ export const SystemProvider = ({ children }) => {
   // System Notifications
   const [notifications, setNotifications] = useState([]);
 
-  // Save to LocalStorage whenever state updates
+  const socketRef = useRef(null);
+  const isRemoteSyncRef = useRef(false);
+  const broadcastChannelRef = useRef(null);
+
+  // Initialize Real-Time Sync Socket & BroadcastChannel
+  useEffect(() => {
+    // 1. BroadcastChannel for instant local browser tab sync
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const channel = new BroadcastChannel('unileague_sync_channel');
+        broadcastChannelRef.current = channel;
+        channel.onmessage = (event) => {
+          const { entityType, data } = event.data || {};
+          if (!entityType || data === undefined) return;
+          isRemoteSyncRef.current = true;
+          if (entityType === 'players') setPlayers(data);
+          else if (entityType === 'teams') setTeams(data);
+          else if (entityType === 'managers') setManagers(data);
+          else if (entityType === 'systemState') setSystemState(data);
+          else if (entityType === 'fixtures') setFixtures(data);
+          else if (entityType === 'news') setNews(data);
+          setTimeout(() => { isRemoteSyncRef.current = false; }, 50);
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel not supported or error:', err);
+      }
+    }
+
+    // 2. Socket.IO for real-time cross-device / cross-browser sync
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('🔄 Synced with UniLeague Real-Time Global Server');
+      socket.emit('sync_request');
+    });
+
+    socket.on('sync_initial', (sharedStore) => {
+      if (!sharedStore) return;
+      isRemoteSyncRef.current = true;
+      if (sharedStore.players) setPlayers(sharedStore.players);
+      if (sharedStore.teams) setTeams(sharedStore.teams);
+      if (sharedStore.managers) setManagers(sharedStore.managers);
+      if (sharedStore.systemState) setSystemState(sharedStore.systemState);
+      if (sharedStore.fixtures) setFixtures(sharedStore.fixtures);
+      if (sharedStore.news) setNews(sharedStore.news);
+      setTimeout(() => { isRemoteSyncRef.current = false; }, 100);
+    });
+
+    socket.on('sync_broadcast', ({ entityType, data }) => {
+      if (!entityType || data === undefined) return;
+      isRemoteSyncRef.current = true;
+      if (entityType === 'players') setPlayers(data);
+      else if (entityType === 'teams') setTeams(data);
+      else if (entityType === 'managers') setManagers(data);
+      else if (entityType === 'systemState') setSystemState(data);
+      else if (entityType === 'fixtures') setFixtures(data);
+      else if (entityType === 'news') setNews(data);
+      setTimeout(() => { isRemoteSyncRef.current = false; }, 100);
+    });
+
+    return () => {
+      socket.disconnect();
+      broadcastChannelRef.current?.close();
+    };
+  }, []);
+
+  const broadcastEntityChange = (entityType, data) => {
+    if (isRemoteSyncRef.current) return;
+    socketRef.current?.emit('sync_update', { entityType, data });
+    try {
+      broadcastChannelRef.current?.postMessage({ entityType, data });
+    } catch {}
+  };
+
+  // Save to LocalStorage and broadcast whenever state updates
   useEffect(() => {
     localStorage.setItem('ff_system_state', JSON.stringify(systemState));
+    broadcastEntityChange('systemState', systemState);
   }, [systemState]);
 
   useEffect(() => {
@@ -400,14 +484,17 @@ export const SystemProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('ff_teams', JSON.stringify(teams));
+    broadcastEntityChange('teams', teams);
   }, [teams]);
 
   useEffect(() => {
     localStorage.setItem('ff_managers', JSON.stringify(managers));
+    broadcastEntityChange('managers', managers);
   }, [managers]);
 
   useEffect(() => {
     localStorage.setItem('ff_players', JSON.stringify(players));
+    broadcastEntityChange('players', players);
   }, [players]);
 
   useEffect(() => {
@@ -420,10 +507,12 @@ export const SystemProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('ff_fixtures', JSON.stringify(fixtures));
+    broadcastEntityChange('fixtures', fixtures);
   }, [fixtures]);
 
   useEffect(() => {
     localStorage.setItem('ff_news', JSON.stringify(news));
+    broadcastEntityChange('news', news);
   }, [news]);
 
   // Budget Ledger (Stream of manual budget adjustments)

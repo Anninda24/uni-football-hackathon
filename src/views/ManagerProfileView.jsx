@@ -7,7 +7,15 @@ export const ManagerProfileView = () => {
   const { currentUser } = useAuth();
   const { managers, setManagers, addNotification } = useSystem();
 
-  const myManager = managers.find(m => m.id === currentUser.id || m.email === currentUser.email);
+  const myManager = managers.find(m => m.id === currentUser?.id || (m.email && m.email.toLowerCase() === currentUser?.email?.toLowerCase())) || (currentUser?.role === 'TEAM_MANAGER' ? {
+    id: currentUser.id,
+    name: currentUser.name || 'Manager',
+    email: currentUser.email || '',
+    username: currentUser.email?.split('@')[0] || 'manager',
+    mobile: '',
+    teamId: currentUser.teamId || null,
+    teamName: currentUser.teamName || 'Unassigned'
+  } : null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({

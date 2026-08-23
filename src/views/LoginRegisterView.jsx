@@ -1,42 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useSystemPhase } from '../context/SystemPhaseContext';
 import { useSystem } from '../context/SystemContext';
-import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2, Lock, LogIn } from 'lucide-react';
+import { Shield, User, Key, ArrowRight, UserPlus, CheckCircle2, UploadCloud, LogIn, Sparkles, UserCheck, Crown, Gavel, Eye } from 'lucide-react';
 
-export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
+export function LoginRegisterView({ onLoginSuccess, initialTab = 'SIGN_IN' }) {
   const { login, PRESET_ACCOUNTS, setCurrentUser } = useAuth();
-  const { currentPhase, isRegistration } = useSystemPhase();
-  const { systemState, players, setPlayers, addNotification } = useSystem();
+  const { systemState, setPlayers, addNotification } = useSystem();
   
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // 3 Tabs: 'SIGN_IN' | 'REGISTER' | 'DEMO'
+  const [activeTab, setActiveTab] = useState(initialTab === 'REGISTER' ? 'REGISTER' : (initialTab === 'DEMO' ? 'DEMO' : 'SIGN_IN'));
 
-  useEffect(() => {
-    if (initialTab === 'REGISTER' && !isRegistration) {
-      setActiveTab('LOGIN');
-    } else {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab, isRegistration]);
-
+  // Login Form States
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
+  // Player Registration Form States
   const [regName, setRegName] = useState('');
   const [regStudentId, setRegStudentId] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regSession, setRegSession] = useState(systemState.academicSessions[0] || '');
+  const [regSession, setRegSession] = useState(systemState.academicSessions[0] || '2025/2026');
   const [regJerseyName, setRegJerseyName] = useState('');
-  const [regJerseyNumber, setRegJerseyNumber] = useState('');
-  const [regPrimaryPosition, setRegPrimaryPosition] = useState(systemState.positions[0]?.code || '');
+  const [regJerseyNumber, setRegJerseyNumber] = useState('10');
+  const [regPrimaryPosition, setRegPrimaryPosition] = useState('ST');
   const [regSecondaryPositions, setRegSecondaryPositions] = useState([]);
   const [regImageUrl, setRegImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
 
-  const positions = systemState.positions || [];
-  const sessions = systemState.academicSessions || [];
+  const POSITIONS = [
+    { code: 'GK', name: 'Goalkeeper' },
+    { code: 'CB', name: 'Center Back' },
+    { code: 'LB', name: 'Left Back' },
+    { code: 'RB', name: 'Right Back' },
+    { code: 'CDM', name: 'Defensive Midfielder' },
+    { code: 'CM', name: 'Central Midfielder' },
+    { code: 'CAM', name: 'Attacking Midfielder' },
+    { code: 'LW', name: 'Left Wing' },
+    { code: 'RW', name: 'Right Wing' },
+    { code: 'ST', name: 'Striker' }
+  ];
+
+  const sessions = systemState.academicSessions || ['2024/2025', '2025/2026', '2026/2027'];
 
   const handleImageFileChange = (e) => {
     const file = e.target.files[0];
@@ -65,36 +71,38 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!username) return;
+    setLoginError('');
+    if (!username || !password) {
+      setLoginError('Please enter both your email/username and password.');
+      return;
+    }
     const res = await login(username, password);
-    if (res?.success && onLoginSuccess) {
-      onLoginSuccess();
+    if (res?.success) {
+      if (onLoginSuccess) onLoginSuccess();
+    } else {
+      setLoginError(res?.error || 'Invalid credentials. Only authorized role accounts can sign in.');
     }
   };
 
   const handlePresetSelect = async (roleKey) => {
     const acc = PRESET_ACCOUNTS[roleKey];
-    const res = await login(acc.email, 'password', roleKey);
-    if (res?.success && onLoginSuccess) {
-      onLoginSuccess();
+    if (acc) {
+      const res = await login(acc.email, '123456', roleKey);
+      if (res?.success && onLoginSuccess) {
+        onLoginSuccess();
+      }
     }
   };
 
   const handleRegister = (e) => {
     e.preventDefault();
 
-    if (!isRegistration) {
-      addNotification('error', 'Registration Closed', 'Player registration is only active during Phase 2: Registration.');
-      return;
-    }
-
     if (!regName || !regStudentId || !regEmail || !regPassword || !regSession || !regJerseyName || !regJerseyNumber || !regPrimaryPosition) {
       addNotification('error', 'Missing Fields', 'Please complete all required text fields.');
       return;
     }
 
-    // Image upload is OPTIONAL — fallback to default avatar
-    const defaultAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
+    const defaultAvatar = 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&auto=format&fit=crop&q=80';
 
     const newPlayer = {
       id: 'ply-' + Date.now(),
@@ -109,7 +117,7 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
       secondaryPositions: regSecondaryPositions,
       imageUrl: regImageUrl || defaultAvatar,
       cloudPublicId: 'cld_ply_' + Date.now(),
-      categoryId: '',
+      categoryId: null, // Automatically registered to Unallocated (no category option)
       basePrice: 0,
       status: 'APPROVED',
       soldToTeamId: null,
@@ -117,7 +125,7 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
     };
 
     setPlayers(prev => [newPlayer, ...prev]);
-    addNotification('success', 'Registration Submitted', 'Your profile has been created. Redirecting...');
+    addNotification('success', 'Player Registered', `${newPlayer.name} registered to draft pool (Unallocated).`);
 
     setRegSuccess(true);
     setTimeout(() => {
@@ -135,106 +143,163 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
   };
 
   return (
-    <div style={{ maxWidth: '480px', margin: '40px auto', width: '100%' }}>
-      {/* Auth Modal Container */}
-      <div className="glass-panel" style={{ padding: '36px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+    <div style={{ maxWidth: '560px', margin: '30px auto', width: '100%' }}>
+      {/* Auth Container */}
+      <div className="glass-panel" style={{ padding: '32px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
-        {/* Navigation Tabs Header */}
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(15, 23, 42, 0.6)', padding: '6px', borderRadius: '12px', marginBottom: '28px' }}>
+        {/* Top Header Branding */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)' }}>
+              <Shield style={{ color: '#fff', width: '22px', height: '22px' }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Authentication & Registration Portal</h2>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>UniLeague Tournament System</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3 SEPARATED TABS HEADER ─────────────────────────────────── */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1.15fr 1fr',
+          gap: '6px',
+          background: 'rgba(15, 23, 42, 0.7)',
+          padding: '6px',
+          borderRadius: '14px',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          {/* TAB 1: Sign In */}
           <button
-            onClick={() => setActiveTab('LOGIN')}
+            type="button"
+            onClick={() => setActiveTab('SIGN_IN')}
             style={{
-              flex: 1,
-              padding: '10px',
-              borderRadius: '8px',
+              padding: '10px 8px',
+              borderRadius: '10px',
               border: 'none',
-              background: activeTab === 'LOGIN' ? 'rgba(59, 130, 246, 0.25)' : 'transparent',
-              color: activeTab === 'LOGIN' ? '#60a5fa' : '#94a3b8',
-              fontWeight: 700,
-              fontSize: '0.86rem',
+              background: activeTab === 'SIGN_IN' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(37, 99, 235, 0.25) 100%)' : 'transparent',
+              color: activeTab === 'SIGN_IN' ? '#60a5fa' : '#94a3b8',
+              fontWeight: activeTab === 'SIGN_IN' ? 800 : 600,
+              fontSize: '0.82rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              borderBottom: activeTab === 'SIGN_IN' ? '2px solid #3b82f6' : '2px solid transparent'
             }}
           >
-            <LogIn size={16} />
-            <span>Login Portal</span>
+            <LogIn size={15} />
+            <span>Sign In</span>
           </button>
 
-          {/* Registration Tab — ONLY visible in Phase 2 */}
-          {isRegistration && (
-            <button
-              onClick={() => setActiveTab('REGISTER')}
-              style={{
-                flex: 1,
-                padding: '10px',
-                borderRadius: '8px',
-                border: 'none',
-                background: activeTab === 'REGISTER' ? 'rgba(34, 197, 94, 0.25)' : 'transparent',
-                color: activeTab === 'REGISTER' ? '#4ade80' : '#94a3b8',
-                fontWeight: 700,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <UserPlus size={16} />
-              <span>Player Register</span>
-            </button>
-          )}
+          {/* TAB 2: Player Registration */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('REGISTER')}
+            style={{
+              padding: '10px 8px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === 'REGISTER' ? 'linear-gradient(135deg, rgba(0, 230, 153, 0.25) 0%, rgba(0, 179, 119, 0.15) 100%)' : 'transparent',
+              color: activeTab === 'REGISTER' ? '#00e699' : '#94a3b8',
+              fontWeight: activeTab === 'REGISTER' ? 800 : 600,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              borderBottom: activeTab === 'REGISTER' ? '2px solid #00e699' : '2px solid transparent'
+            }}
+          >
+            <UserPlus size={15} />
+            <span>Player Registration</span>
+          </button>
+
+          {/* TAB 3: Quick Demo Switcher */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('DEMO')}
+            style={{
+              padding: '10px 8px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === 'DEMO' ? 'linear-gradient(135deg, rgba(255, 183, 3, 0.25) 0%, rgba(255, 157, 0, 0.15) 100%)' : 'transparent',
+              color: activeTab === 'DEMO' ? '#ffb703' : '#94a3b8',
+              fontWeight: activeTab === 'DEMO' ? 800 : 600,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              borderBottom: activeTab === 'DEMO' ? '2px solid #ffb703' : '2px solid transparent'
+            }}
+          >
+            <Sparkles size={15} />
+            <span>Demo Switcher</span>
+          </button>
         </div>
 
-        {/* ── TAB 1: LOGIN PORTAL ────────────────────────────────────────── */}
-        {activeTab === 'LOGIN' && (
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* ── TAB 1 CONTENT: SIGN IN ───────────────────────────────────── */}
+        {activeTab === 'SIGN_IN' && (
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Portal Single Sign-On</h2>
-              <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '4px 0 0 0' }}>Enter your credentials or choose a quick demo role below.</p>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Sign In to Platform</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '4px 0 0 0' }}>Enter your role credentials (or use the Demo Switcher tab).</p>
             </div>
 
+            {loginError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                color: '#f87171',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>⚠️ {loginError}</span>
+              </div>
+            )}
+
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Email / Username / Role</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Email / Username / Role</label>
               <input
                 type="text"
-                placeholder="e.g. admin@gmail.com, subadmin, podium, manager..."
+                placeholder="e.g. admin@gmail.com, subadmin, manager, player..."
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
-                  background: '#1e293b',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#fff',
-                  fontSize: '0.9rem'
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (loginError) setLoginError('');
                 }}
+                required
+                className="form-control"
+                style={{ padding: '11px 14px', fontSize: '0.88rem' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Password</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Password</label>
               <input
                 type="password"
-                placeholder="•••••••• (Default demo: 123456)"
+                placeholder="Password (e.g. 123)"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
-                  background: '#1e293b',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#fff',
-                  fontSize: '0.9rem'
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (loginError) setLoginError('');
                 }}
+                required
+                className="form-control"
+                style={{ padding: '11px 14px', fontSize: '0.88rem' }}
               />
             </div>
 
@@ -253,85 +318,72 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                marginTop: '6px'
+                marginTop: '4px',
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)'
               }}
             >
               <span>Sign In to Platform</span>
               <ArrowRight size={16} />
             </button>
 
-            {/* Quick Switch Demo Accounts */}
-            <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '18px', marginTop: '6px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
-                Quick Demo Switcher
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {Object.keys(PRESET_ACCOUNTS).map(key => {
-                  const acc = PRESET_ACCOUNTS[key];
-                  const isManager = key === 'TEAM_MANAGER';
-                  const isPlayer = key === 'PLAYER';
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => handlePresetSelect(key)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        background: isManager ? 'rgba(59, 130, 246, 0.15)' : isPlayer ? 'rgba(34, 197, 94, 0.15)' : 'rgba(30, 41, 59, 0.6)',
-                        color: isManager ? '#60a5fa' : isPlayer ? '#4ade80' : '#cbd5e1',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <span>{acc.avatar}</span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {isManager ? 'Manager' : isPlayer ? 'Player' : acc.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '0.74rem', color: '#64748b' }}>
+              💡 <strong>Demo Credentials (password: <code style={{ color: '#f8fafc' }}>123</code>):</strong> <code style={{ color: '#60a5fa' }}>admin@gmail.com</code> (Super Admin) · <code style={{ color: '#ff4d6d' }}>subadmin@gmail.com</code> (Sub-Admin) · <code style={{ color: '#a855f7' }}>podium@gmail.com</code> (Podium Admin) · <code style={{ color: '#ffb703' }}>manager@gmail.com</code> (Manager) · <code style={{ color: '#00e699' }}>player@gmail.com</code> (Player)
             </div>
           </form>
         )}
 
-        {/* ── TAB 2: PLAYER REGISTER (Phase 2 Only) ────────────────────────── */}
-        {activeTab === 'REGISTER' && isRegistration && (
-          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Player Portal Registration</h2>
-              <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '4px 0 0 0' }}>Submit your profile details for auction pool qualification.</p>
+        {/* ── TAB 2 CONTENT: PLAYER REGISTRATION ───────────────────────── */}
+        {activeTab === 'REGISTER' && (
+          <div>
+            <div style={{ marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Player Registration (Join Draft Pool)</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
+                Register your profile for the auction pool. New athletes are placed into <strong>Unallocated</strong> until assigned a tier by the league administrator.
+              </p>
             </div>
 
             {regSuccess ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: '#4ade80' }}>
+              <div style={{ textAlign: 'center', padding: '32px 0', color: '#4ade80' }}>
                 <CheckCircle2 size={48} style={{ marginBottom: '12px' }} />
-                <h3>Registration Successful!</h3>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Redirecting to your dashboard...</p>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem' }}>Registration Successful!</h3>
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>Added to draft pool. Redirecting to your dashboard...</p>
               </div>
             ) : (
-              <>
+              <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Full Name *</label>
-                  <input type="text" required value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="e.g. John Doe" className="form-control" style={{ fontSize: '0.85rem' }} />
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="e.g. Liam Smith"
+                    className="form-control"
+                    style={{ fontSize: '0.85rem' }}
+                  />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Student ID *</label>
-                    <input type="text" required value={regStudentId} onChange={(e) => setRegStudentId(e.target.value)} placeholder="ST-2026-08" className="form-control" style={{ fontSize: '0.85rem' }} />
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Student ID *</label>
+                    <input
+                      type="text"
+                      required
+                      value={regStudentId}
+                      onChange={(e) => setRegStudentId(e.target.value)}
+                      placeholder="ST-2026-101"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Academic Session *</label>
-                    <select value={regSession} onChange={(e) => setRegSession(e.target.value)} className="form-control" style={{ fontSize: '0.85rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Academic Session *</label>
+                    <select
+                      value={regSession}
+                      onChange={(e) => setRegSession(e.target.value)}
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    >
                       {sessions.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
@@ -339,67 +391,258 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Email *</label>
-                    <input type="email" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="student@univ.edu" className="form-control" style={{ fontSize: '0.85rem' }} />
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="student@univ.edu"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Password *</label>
-                    <input type="password" required value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="••••••••" className="form-control" style={{ fontSize: '0.85rem' }} />
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Password *</label>
+                    <input
+                      type="password"
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    />
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Jersey Name *</label>
-                    <input type="text" required value={regJerseyName} onChange={(e) => setRegJerseyName(e.target.value)} placeholder="DOE" className="form-control" style={{ fontSize: '0.85rem' }} />
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Jersey Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={regJerseyName}
+                      onChange={(e) => setRegJerseyName(e.target.value)}
+                      placeholder="SMITH"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Jersey Number *</label>
-                    <input type="text" required value={regJerseyNumber} onChange={(e) => setRegJerseyNumber(e.target.value)} placeholder="10" className="form-control" style={{ fontSize: '0.85rem' }} />
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>Jersey # *</label>
+                    <input
+                      type="number"
+                      required
+                      value={regJerseyNumber}
+                      onChange={(e) => setRegJerseyNumber(e.target.value)}
+                      placeholder="10"
+                      className="form-control"
+                      style={{ fontSize: '0.85rem' }}
+                    />
                   </div>
                 </div>
 
+                {/* Primary Position Selection */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Primary Position *</label>
-                  <select value={regPrimaryPosition} onChange={(e) => setRegPrimaryPosition(e.target.value)} className="form-control" style={{ fontSize: '0.85rem' }}>
-                    {positions.map(p => <option key={p.code} value={p.code}>{p.code} - {p.name}</option>)}
-                  </select>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 600 }}>
+                    Primary Position * (Pick Exactly 1)
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {POSITIONS.map(p => {
+                      const isSelected = regPrimaryPosition === p.code;
+                      return (
+                        <button
+                          type="button"
+                          key={p.code}
+                          onClick={() => setRegPrimaryPosition(p.code)}
+                          style={{
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: isSelected ? '2px solid #00e699' : '1px solid rgba(255, 255, 255, 0.1)',
+                            background: isSelected ? 'rgba(0, 230, 153, 0.2)' : 'rgba(15, 23, 42, 0.6)',
+                            color: isSelected ? '#00e699' : '#94a3b8'
+                          }}
+                        >
+                          {p.code}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* Profile Photo (OPTIONAL) */}
+                {/* Secondary Positions Selection */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px' }}>Profile Photo (Optional)</label>
-                  <input type="file" accept="image/*" onChange={handleImageFileChange} className="form-control" style={{ fontSize: '0.8rem', padding: '6px' }} />
-                  {regImageUrl && (
-                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <img src={regImageUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '6px', objectFit: 'cover' }} />
-                      <span style={{ fontSize: '0.75rem', color: '#4ade80' }}>✓ Photo attached</span>
-                    </div>
-                  )}
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '6px', fontWeight: 600 }}>
+                    Secondary Positions (Optional)
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {POSITIONS.map(p => {
+                      const isPri = regPrimaryPosition === p.code;
+                      const isSec = regSecondaryPositions.includes(p.code);
+                      return (
+                        <button
+                          type="button"
+                          key={p.code}
+                          disabled={isPri}
+                          onClick={() => toggleSecondaryPosition(p.code)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            cursor: isPri ? 'not-allowed' : 'pointer',
+                            opacity: isPri ? 0.35 : 1,
+                            border: isSec ? '1px solid #00d9ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: isSec ? 'rgba(0, 217, 255, 0.2)' : 'rgba(15, 23, 42, 0.4)',
+                            color: isSec ? '#00d9ff' : '#64748b'
+                          }}
+                        >
+                          + {p.code}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Profile Photo Upload */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '4px', fontWeight: 600 }}>
+                    Profile Photo (Optional)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: '1px dashed rgba(255, 255, 255, 0.2)',
+                      color: '#94a3b8',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      cursor: 'pointer'
+                    }}>
+                      <UploadCloud size={16} />
+                      <span>{uploadingImage ? 'Uploading...' : 'Choose Photo...'}</span>
+                      <input type="file" accept="image/*" onChange={handleImageFileChange} style={{ display: 'none' }} />
+                    </label>
+                    {regImageUrl && (
+                      <img src={regImageUrl} alt="" style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover' }} />
+                    )}
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   style={{
+                    marginTop: '8px',
                     padding: '12px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                    color: '#fff',
-                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #00e699 0%, #00b377 100%)',
+                    color: '#031710',
+                    fontWeight: 800,
                     fontSize: '0.9rem',
                     cursor: 'pointer',
-                    marginTop: '6px'
+                    boxShadow: '0 4px 14px rgba(0, 230, 153, 0.35)'
                   }}
                 >
-                  Complete Registration
+                  Complete Player Registration
                 </button>
-              </>
+              </form>
             )}
-          </form>
+          </div>
+        )}
+
+        {/* ── TAB 3 CONTENT: QUICK DEMO SWITCHER ───────────────────────── */}
+        {activeTab === 'DEMO' && (
+          <div>
+            <div style={{ marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>Quick Demo Switcher</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
+                Instant one-click access to test all administrative, manager, player, and spectator roles.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {Object.keys(PRESET_ACCOUNTS)
+                .filter(key => !['ICON_PLAYER', 'SPECTATOR'].includes(key))
+                .map(key => {
+                const acc = PRESET_ACCOUNTS[key];
+                const isSuperAdmin = key === 'SUPER_ADMIN';
+                const isSubAdmin = key === 'SUB_ADMIN';
+                const isManager = key === 'TEAM_MANAGER';
+                const isPlayer = key === 'PLAYER';
+                const isPodium = key === 'PODIUM_ADMIN';
+
+                const roleBadgeColor = isSuperAdmin ? '#ef4444' : isSubAdmin ? '#ff4d6d' : isPodium ? '#a855f7' : isManager ? '#3b82f6' : isPlayer ? '#22c55e' : '#94a3b8';
+
+                const roleLabel = isSuperAdmin ? 'Super Admin' : isSubAdmin ? 'Sub Admin' : isPodium ? 'Podium Admin' : isManager ? 'Team Manager' : isPlayer ? 'Player' : acc.role.replace(/_/g, ' ');
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handlePresetSelect(key)}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      textAlign: 'left',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)';
+                      e.currentTarget.style.borderColor = roleBadgeColor;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.6)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.4rem' }}>{acc.avatar}</span>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#f8fafc' }}>{acc.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{acc.email} · pass: 123</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: `${roleBadgeColor}20`,
+                        color: roleBadgeColor,
+                        border: `1px solid ${roleBadgeColor}40`
+                      }}>
+                        {roleLabel}
+                      </span>
+                      <ArrowRight size={14} color="#64748b" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
 
       </div>
     </div>
   );
 }
+

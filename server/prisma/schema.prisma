@@ -32,6 +32,9 @@ model PlayerProfile {
   jerseyName         String
   primaryPosition    String
   secondaryPositions String        @default("")
+  position           String        @default("MID")
+  jerseyNumber       Int           @default(0)
+  rating             Int           @default(70)
   basePrice          Float         @default(0)
   categoryId         String?
   tierId             String?
@@ -49,10 +52,17 @@ model PlayerProfile {
 model Team {
   id              String   @id @default(uuid())
   name            String
+  shortName       String   @default("")
+  color           String   @default("#3B82F6")
+  secondaryColor  String   @default("#1E293B")
+  venue           String   @default("")
   budget          Float    @default(100000)
   remainingBudget Float    @default(100000)
   managerId       String?  @unique
   manager         User?    @relation(fields: [managerId], references: [id])
+  captainId       String?
+  viceCaptainId   String?
+  logoUrl         String?
   groupId         String?  // Strict 1-to-1 link to TournamentGroup
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -105,6 +115,7 @@ model Match {
   isTwoLegged     Boolean       @default(false)
   leg             Int           @default(1)
   pairedMatchId   String?
+  fixtureGroupId  String?
   leg1ScoreA      Int           @default(0)
   leg1ScoreB      Int           @default(0)
   leg2ScoreA      Int           @default(0)
@@ -113,10 +124,16 @@ model Match {
   aggScoreB       Int           @default(0)
   status          String        @default("UPCOMING")
   scheduledTime   DateTime?
+  currentMinute   Int?
+  finishedAt      DateTime?
+  mvpId           String?
+  penaltyA        Int?
+  penaltyB        Int?
   venue           String?
   groupId         String?
   stats           PlayerStats[]
   events          MatchEvent[]
+  lineups         MatchLineup[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
@@ -147,21 +164,55 @@ model MatchEvent {
   matchId         String
   match           Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
   type            String         // GOAL | ASSIST | YELLOW_CARD | RED_CARD | GOAL_SAVED | TACKLE | etc.
+  teamSide        String         @default("A")
   teamId          String
   playerId        String
   player          PlayerProfile  @relation("ScorerEvents", fields: [playerId], references: [id], onDelete: Cascade)
   assistPlayerId  String?
   assistPlayer    PlayerProfile? @relation("AssisterEvents", fields: [assistPlayerId], references: [id])
   minute          Int            @default(0)
+  assistMinute    Int?
+  isPenalty       Boolean        @default(false)
+  isStandaloneAssist Boolean     @default(false)
   createdAt       DateTime       @default(now())
 }
 
 // 11. TournamentGroup Model
 model TournamentGroup {
-  id        String   @id @default(uuid())
+  id        String      @id @default(uuid())
   name      String
-  color     String   @default("#3b82f6")
-  teamIds   String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  color     String      @default("#3b82f6")
+  phase     String      @default("GROUP_STAGE")
+  teamIds   String      @default("")
+  teams     GroupTeam[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+// 12. MatchLineup Model
+model MatchLineup {
+  id            String   @id @default(uuid())
+  matchId       String
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamSide      String   // "A" or "B"
+  playerId      String
+  positionOrder Int      // 1-11 = Starting XI, 12+ = Substitutes
+
+  @@unique([matchId, teamSide, playerId])
+}
+
+// 13. GroupTeam Model
+model GroupTeam {
+  id        String          @id @default(uuid())
+  groupId   String
+  group     TournamentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teamId    String
+
+  @@unique([groupId, teamId])
+}
+
+// 14. TournamentSettings Model
+model TournamentSettings {
+  key   String @id
+  value String
 }

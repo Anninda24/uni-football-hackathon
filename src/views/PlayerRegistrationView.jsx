@@ -16,7 +16,7 @@ export const PlayerRegistrationView = () => {
     primaryPosition: systemState.positions[0]?.code || '',
     secondaryPositions: [],
     imageUrl: '',
-    categoryId: systemState.categories[0]?.id || 'cat-plat'
+    categoryId: ''
   });
 
   const [imagePreview, setImagePreview] = useState('');
@@ -82,17 +82,16 @@ export const PlayerRegistrationView = () => {
       return;
     }
 
-
-
-    const category = systemState.categories.find(c => c.id === formData.categoryId) || systemState.categories[0];
+    const category = formData.categoryId ? systemState.categories.find(c => c.id === formData.categoryId) : null;
     const defaultImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
     if (editingPlayerId) {
       setPlayers(prev => prev.map(p => p.id === editingPlayerId ? {
         ...p,
         ...formData,
+        categoryId: formData.categoryId || null,
         imageUrl: formData.imageUrl || p.imageUrl || defaultImage,
-        basePrice: category ? category.basePrice : 10000
+        basePrice: category ? category.basePrice : 0
       } : p));
       setEditingPlayerId(null);
       addNotification('success', 'Profile Updated', 'Player registration updated successfully.');
@@ -102,14 +101,14 @@ export const PlayerRegistrationView = () => {
         ...formData,
         imageUrl: formData.imageUrl || defaultImage,
         cloudPublicId: 'cld_ply_' + Date.now(),
-        categoryId: category.id,
-        basePrice: category ? category.basePrice : 10000,
+        categoryId: formData.categoryId || null,
+        basePrice: category ? category.basePrice : 0,
         status: 'APPROVED',
         soldToTeamId: null,
         soldAmount: 0
       };
       setPlayers(prev => [newPlayer, ...prev]);
-      addNotification('success', 'Registration Submitted', 'Player registration profile successfully added to auction pool.');
+      addNotification('success', 'Registration Submitted', 'Player registration profile successfully added to auction pool (Unallocated).');
     }
 
     setFormData({
@@ -123,7 +122,7 @@ export const PlayerRegistrationView = () => {
       primaryPosition: systemState.positions[0]?.code || '',
       secondaryPositions: [],
       imageUrl: '',
-      categoryId: systemState.categories[0]?.id || 'cat-plat'
+      categoryId: ''
     });
     setImagePreview('');
   };
