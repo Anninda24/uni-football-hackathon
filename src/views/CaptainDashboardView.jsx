@@ -15,8 +15,9 @@ export const CaptainDashboardView = () => {
   const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
   const approvedPlayers = players.filter(p => p.status === 'APPROVED');
 
-  const budgetUsedPct = myTeam ? Math.round((myTeam.spent / myTeam.budget) * 100) : 0;
-  const remainingBudget = myTeam ? myTeam.budget - myTeam.spent : 0;
+  const totalPurse = myTeam ? (myTeam.budget + myTeam.spent) : (systemState.totalBudget || 100000);
+  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((myTeam.spent / totalPurse) * 100) : 0;
+  const remainingBudget = myTeam ? myTeam.budget : 0;
 
   const upcomingMatches = [
     { id: 'm1', opponent: 'Vanguard Lions', date: '2026-08-10', time: '15:00', venue: 'Main Ground', type: 'League' },

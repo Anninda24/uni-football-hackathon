@@ -116,13 +116,19 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     const file = e.target.files[0];
     if (!file) return;
     setIsUploading(true);
-    setTimeout(() => {
-      const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target.result;
       setImagePreview(url);
       setFormData(prev => ({ ...prev, imageUrl: url }));
       setIsUploading(false);
       addNotification('success', 'Cloud Media Uploaded', 'Cloudinary public ID asset generated.');
-    }, 800);
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      addNotification('error', 'Upload Failed', 'Could not read image file.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFormSubmit = (e) => {
@@ -226,7 +232,11 @@ export const PlayerDirectoryView = ({ initialEditPlayer = null }) => {
     return acc;
   }, {});
 
-  const groupOrder = ['unallocated', 'cat-icon', 'cat-bronze', 'cat-silver', 'cat-gold', 'cat-plat'];
+  const groupOrder = [
+    'unallocated',
+    'cat-icon',
+    ...systemState.categories.filter(c => c.id !== 'cat-icon').map(c => c.id)
+  ];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>

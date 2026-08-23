@@ -158,7 +158,7 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
       </div>
 
       {/* Main Grid: Podium Stage & Controls */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 280px 1fr', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px' }}>
         
         {/* Left Column: Podium Center Stage & Manager Bidding */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

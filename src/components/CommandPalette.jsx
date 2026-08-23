@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSystem } from '../context/SystemContext';
+import { useSystemPhase } from '../context/SystemPhaseContext';
 import { useAuth } from '../context/AuthContext';
 import { Search, User, Shield, Users, Layers, Activity, Gavel, Key, Radio, X } from 'lucide-react';
 
 export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer, onEditManager }) => {
   const { players, managers, teams, systemState, changePhase } = useSystem();
+  const { currentPhaseId, setPhase } = useSystemPhase();
   const { currentUser } = useAuth();
   const [query, setQuery] = useState('');
 
@@ -84,15 +86,16 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
                 SYSTEM PHASE QUICK ACTIONS
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {['SETUP', 'REGISTRATION', 'THE_AUCTION', 'TOURNAMENT'].map(p => (
+                {['SETUP', 'REGISTRATION', 'AUCTION', 'TOURNAMENT'].map(p => (
                   <button
                     key={p}
                     onClick={() => {
+                      setPhase(p);
                       changePhase(p);
                       onClose();
                     }}
                     style={{
-                      background: systemState.currentPhase === p ? 'rgba(0, 230, 153, 0.2)' : 'var(--bg-input)',
+                      background: (currentPhaseId === p || systemState.currentPhase === p) ? 'rgba(0, 230, 153, 0.2)' : 'var(--bg-input)',
                       border: '1px solid var(--border-color)',
                       borderRadius: '8px',
                       padding: '8px 12px',
@@ -107,7 +110,7 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
                     }}
                   >
                     <span>Switch to {p}</span>
-                    {systemState.currentPhase === p && <span className="badge badge-green">ACTIVE</span>}
+                    {(currentPhaseId === p || systemState.currentPhase === p) && <span className="badge badge-green">ACTIVE</span>}
                   </button>
                 ))}
               </div>
@@ -121,21 +124,21 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => { setActiveModule('MISSION_CONTROL'); onClose(); }}
+                onClick={() => { setActiveModule('SUPER_ADMIN_DASHBOARD'); onClose(); }}
                 className="btn btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '6px 12px' }}
               >
                 <Activity size={14} color="var(--accent-green)" /> Mission Control & Socket Ping
               </button>
               <button
-                onClick={() => { setActiveModule('CATEGORIES'); onClose(); }}
+                onClick={() => { setActiveModule('SUPER_ADMIN_PLAYER_POOL_CATEGORY'); onClose(); }}
                 className="btn btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '6px 12px' }}
               >
                 <Layers size={14} color="var(--accent-cyan)" /> Category Base Prices
               </button>
               <button
-                onClick={() => { setActiveModule('BIDDING_MATRIX'); onClose(); }}
+                onClick={() => { setActiveModule('SUPER_ADMIN_AUCTION_RULES'); onClose(); }}
                 className="btn btn-secondary"
                 style={{ fontSize: '0.8rem', padding: '6px 12px' }}
               >
@@ -155,7 +158,7 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
                   <div
                     key={player.id}
                     onClick={() => {
-                      setActiveModule('PLAYERS');
+                      setActiveModule('PLAYER_DIRECTORY');
                       if (onEditPlayer) onEditPlayer(player);
                       onClose();
                     }}
@@ -195,7 +198,7 @@ export const CommandPalette = ({ isOpen, onClose, setActiveModule, onEditPlayer,
                   <div
                     key={mgr.id}
                     onClick={() => {
-                      setActiveModule('MANAGERS');
+                      setActiveModule('SUPER_ADMIN_TEAM_MANAGEMENT');
                       if (onEditManager) onEditManager(mgr);
                       onClose();
                     }}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSystem } from '../context/SystemContext';
+import { useSystemPhase } from '../context/SystemPhaseContext';
 import { useAuth } from '../context/AuthContext';
 import { Users, Shield, DollarSign, Star, Crown, UserCheck, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -20,6 +21,7 @@ const CATEGORY_COLORS = {
 
 export const MyTeamInfoView = () => {
   const { teams, players, systemState, setTeams, addNotification } = useSystem();
+  const { currentPhase } = useSystemPhase();
   const { currentUser } = useAuth();
   const [expandedPlayer, setExpandedPlayer] = useState(null);
   const [captainAssignId, setCaptainAssignId] = useState('');
@@ -42,8 +44,9 @@ export const MyTeamInfoView = () => {
   const rosterPlayers = players.filter(p => myTeam?.roster?.includes(p.id));
   const displayRoster = rosterPlayers.length > 0 ? rosterPlayers : [];
 
-  const budgetUsedPct = myTeam ? Math.round((myTeam.spent / myTeam.budget) * 100) : 0;
-  const remainingBudget = myTeam ? myTeam.budget - myTeam.spent : 100000;
+  const totalPurse = myTeam ? (myTeam.budget + myTeam.spent) : (systemState.totalBudget || 100000);
+  const budgetUsedPct = totalPurse > 0 && myTeam ? Math.round((myTeam.spent / totalPurse) * 100) : 0;
+  const remainingBudget = myTeam ? myTeam.budget : 100000;
 
   const isManager = role === 'TEAM_MANAGER';
   const canAssignLeaders = isManager || role === 'SUPER_ADMIN' || role === 'SUB_ADMIN';
@@ -86,7 +89,7 @@ export const MyTeamInfoView = () => {
                 <h2 style={{ fontSize: '1.7rem', fontWeight: 900, margin: 0 }}>{myTeam?.name || 'Thunderbolts FC'}</h2>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                   <span className="badge badge-gold">{role.replace('_', ' ')} Team View</span>
-                  <span className="badge badge-green">{systemState.currentPhase.label}</span>
+                  <span className="badge badge-green">{currentPhase.label}</span>
                 </div>
               </div>
             </div>

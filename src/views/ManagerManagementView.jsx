@@ -95,13 +95,19 @@ export const ManagerManagementView = ({ initialEditManager = null }) => {
     const file = e.target.files[0];
     if (!file) return;
     setIsUploading(true);
-    setTimeout(() => {
-      const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target.result;
       setImagePreview(url);
       setFormData(prev => ({ ...prev, imageUrl: url }));
       setIsUploading(false);
       addNotification('success', 'Cloud Media Uploaded', 'Manager photo uploaded to Cloudinary.');
-    }, 800);
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      addNotification('error', 'Upload Failed', 'Could not read image file.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e) => {

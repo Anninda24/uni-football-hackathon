@@ -42,11 +42,17 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
     const file = e.target.files[0];
     if (!file) return;
     setUploadingImage(true);
-    setTimeout(() => {
-      setRegImageUrl(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setRegImageUrl(event.target.result);
       setUploadingImage(false);
       addNotification('success', 'Image Uploaded', 'Optional profile photo attached.');
-    }, 600);
+    };
+    reader.onerror = () => {
+      setUploadingImage(false);
+      addNotification('error', 'Upload Failed', 'Could not read image file.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const toggleSecondaryPosition = (code) => {
@@ -57,19 +63,19 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'LOGIN' }) {
     });
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!username) return;
-    const res = login(username, password);
-    if (res.success && onLoginSuccess) {
+    const res = await login(username, password);
+    if (res?.success && onLoginSuccess) {
       onLoginSuccess();
     }
   };
 
-  const handlePresetSelect = (roleKey) => {
+  const handlePresetSelect = async (roleKey) => {
     const acc = PRESET_ACCOUNTS[roleKey];
-    const res = login(acc.email, 'password', roleKey);
-    if (res.success && onLoginSuccess) {
+    const res = await login(acc.email, 'password', roleKey);
+    if (res?.success && onLoginSuccess) {
       onLoginSuccess();
     }
   };

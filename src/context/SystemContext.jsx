@@ -543,8 +543,8 @@ export const SystemProvider = ({ children }) => {
   };
 
   const placeBid = (teamId, bidAmount) => {
-    if (systemState.currentPhase !== 'THE_AUCTION') {
-      addNotification('error', 'Auction Locked', 'Bidding is strictly disabled outside Phase 3 (THE_AUCTION).');
+    if (systemState.currentPhase !== 'THE_AUCTION' && systemState.currentPhase !== 'AUCTION') {
+      addNotification('error', 'Auction Locked', 'Bidding is strictly disabled outside Phase 3 (AUCTION).');
       return false;
     }
 

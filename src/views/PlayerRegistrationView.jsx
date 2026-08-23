@@ -51,8 +51,9 @@ export const PlayerRegistrationView = () => {
     if (!file) return;
 
     setCloudUploadProgress(true);
-    setTimeout(() => {
-      const simulatedCloudUrl = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const simulatedCloudUrl = event.target.result;
       setImagePreview(simulatedCloudUrl);
       setFormData(prev => ({
         ...prev,
@@ -60,7 +61,12 @@ export const PlayerRegistrationView = () => {
       }));
       setCloudUploadProgress(false);
       addNotification('success', 'Cloud Media Uploaded', 'Image uploaded to Cloud Media Storage (Cloudinary Public ID generated).');
-    }, 1200);
+    };
+    reader.onerror = () => {
+      setCloudUploadProgress(false);
+      addNotification('error', 'Upload Failed', 'Could not read image file.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e) => {
@@ -168,7 +174,7 @@ export const PlayerRegistrationView = () => {
     addNotification('info', 'Registration Withdrawn', 'Player registration record deleted from system.');
   };
 
-  const isLocked = systemState.currentPhase === 'THE_AUCTION' || systemState.currentPhase === 'TOURNAMENT';
+  const isLocked = systemState.currentPhase === 'THE_AUCTION' || systemState.currentPhase === 'AUCTION' || systemState.currentPhase === 'TOURNAMENT';
 
   const positions = systemState.positions || [];
 

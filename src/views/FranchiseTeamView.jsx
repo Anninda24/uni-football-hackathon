@@ -99,10 +99,11 @@ export const FranchiseTeamView = () => {
             previousCategoryId: p.categoryId
           };
         } else if (!isIcon && wasIcon) {
-          // Remove icon status - restore previous category or unassign
+          // Remove icon status - restore previous category or unassign to default tier
+          const defaultCatId = systemState.categories.find(c => c.id !== 'cat-icon')?.id || 'cat-plat';
           return {
             ...p,
-            categoryId: p.previousCategoryId || 'unallocated',
+            categoryId: p.previousCategoryId || defaultCatId,
             soldToTeamId: null,
             previousCategoryId: undefined
           };
@@ -119,6 +120,7 @@ export const FranchiseTeamView = () => {
     } else {
       // Add
       const newTeamId = 'team-' + Date.now();
+      const initialRoster = [...(captainId ? [captainId] : []), ...(viceCaptainId ? [viceCaptainId] : [])];
       const newTeam = {
         id: newTeamId,
         name: teamName,
@@ -128,7 +130,7 @@ export const FranchiseTeamView = () => {
         primaryColor,
         budget: systemState.totalBudget,
         spent: 0,
-        roster: [],
+        roster: initialRoster,
         purchaseHistory: [],
         captainId: captainId || null,
         viceCaptainId: viceCaptainId || null

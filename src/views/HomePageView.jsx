@@ -84,11 +84,20 @@ export const HomePageView = ({ onNavigate }) => {
     }
   ];
 
+  const getStepStatus = (stepPhase) => {
+    const phaseWeights = { SETUP: 1, REGISTRATION: 2, AUCTION: 3, TOURNAMENT: 4 };
+    const currentWeight = phaseWeights[currentPhaseId] || 1;
+    const stepWeight = phaseWeights[stepPhase] || 1;
+    if (stepWeight < currentWeight) return 'COMPLETED';
+    if (stepWeight === currentWeight) return 'ACTIVE';
+    return 'UPCOMING';
+  };
+
   const roadmapSteps = [
-    { step: '01', title: 'Setup & Rules', status: 'COMPLETED', desc: 'Financial limits, category base prices, and batch franchises created.' },
-    { step: '02', title: 'Player Registration', status: currentPhaseId === 'PHASE_2_REGISTRATION' ? 'ACTIVE' : 'UPCOMING', desc: 'CSE students register profiles, positions, preferred roles, and bio.' },
-    { step: '03', title: 'The Live Auction', status: currentPhaseId === 'PHASE_3_AUCTION' ? 'ACTIVE' : 'UPCOMING', desc: 'Real-time dynamic bidding for players by franchise managers.' },
-    { step: '04', title: 'Tournament Finals', status: currentPhaseId === 'PHASE_4_TOURNAMENT' ? 'ACTIVE' : 'UPCOMING', desc: 'Thrilling group matches, semi-finals, and grand trophy championship.' }
+    { step: '01', title: 'Setup & Rules', status: getStepStatus('SETUP'), desc: 'Financial limits, category base prices, and batch franchises created.' },
+    { step: '02', title: 'Player Registration', status: getStepStatus('REGISTRATION'), desc: 'CSE students register profiles, positions, preferred roles, and bio.' },
+    { step: '03', title: 'The Live Auction', status: getStepStatus('AUCTION'), desc: 'Real-time dynamic bidding for players by franchise managers.' },
+    { step: '04', title: 'Tournament Finals', status: getStepStatus('TOURNAMENT'), desc: 'Thrilling group matches, semi-finals, and grand trophy championship.' }
   ];
 
   const faqs = [

@@ -159,7 +159,7 @@ function AppContent() {
       case 'SUPER_ADMIN_SETTINGS':
         return (
           <ProtectedRoute allowedRoles={['SUPER_ADMIN']} onUnauthorizedRedirect={setActiveRoute}>
-            <SettingsTabbedView />
+            <SettingsTabbedView onOpenNukeModal={() => setShowNukeModal(true)} />
           </ProtectedRoute>
         );
 

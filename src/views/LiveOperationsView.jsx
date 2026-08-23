@@ -6,7 +6,7 @@ import { LiveAuctionView } from './LiveAuctionView';
 export const LiveOperationsView = ({ onNavigateToTab }) => {
   const { systemState } = useSystem();
 
-  const isAuctionPhase = systemState.currentPhase === 'THE_AUCTION';
+  const isAuctionPhase = systemState.currentPhase === 'THE_AUCTION' || systemState.currentPhase === 'AUCTION';
 
   if (!isAuctionPhase) {
     return (

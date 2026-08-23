@@ -48,6 +48,8 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
     currentUser, 
     teams, 
     players, 
+    fixtures: localFixtures,
+    calculatePointsTable,
     addNotification 
   } = useSystem();
 
@@ -122,8 +124,8 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
   }, []);
 
   // Data helpers
-  const fixtures = backendMatches.length > 0 ? backendMatches : [];
-  const standings = backendStandings.length > 0 ? backendStandings : [];
+  const fixtures = backendMatches.length > 0 ? backendMatches : (localFixtures || []);
+  const standings = backendStandings.length > 0 ? backendStandings : (calculatePointsTable ? calculatePointsTable() : []);
   const groups = backendGroups.length > 0 ? backendGroups : [];
   const topScorers = leaderboards.topScorers || [];
   const topAssists = leaderboards.topAssists || [];
