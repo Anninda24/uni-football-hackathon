@@ -7,6 +7,7 @@ import authRoutes       from './routes/authRoutes.js';
 import adminRoutes      from './routes/adminRoutes.js';
 import playerRoutes     from './routes/playerRoutes.js';
 import tournamentRoutes from './routes/tournamentRoutes.js';
+import subAdminRoutes   from './routes/subAdminRoutes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use('/api/auth',       authRoutes);
 app.use('/api/admin',      adminRoutes);
 app.use('/api/player',     playerRoutes);
 app.use('/api/tournament', tournamentRoutes);
+app.use('/api/sub-admin',  subAdminRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
