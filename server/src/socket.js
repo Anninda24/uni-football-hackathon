@@ -17,6 +17,16 @@ let auctionState = {
   ledger: [] // Bid history log
 };
 
+// In-Memory Cross-Device Global Entity Store (Players, Teams, Managers, Rules)
+let globalSharedStore = {
+  systemState: null,
+  players: null,
+  teams: null,
+  managers: null,
+  fixtures: null,
+  news: null
+};
+
 let timerInterval = null;
 
 export const initSocket = (httpServer) => {
@@ -94,10 +104,32 @@ export const initSocket = (httpServer) => {
   };
 
   io.on('connection', (socket) => {
-    console.log(`🔌 Client connected to auction namespace: ${socket.id}`);
+    console.log(`🔌 Client connected to league namespace: ${socket.id}`);
 
     // Send current initial state upon connection
     socket.emit('auction_state', auctionState);
+    if (Object.values(globalSharedStore).some(v => v !== null)) {
+      socket.emit('sync_initial', globalSharedStore);
+    }
+
+    // --- REAL-TIME ENTITY SYNC ACROSS ALL DEVICES / BROWSERS ---
+    socket.on('sync_update', ({ entityType, data }) => {
+      if (entityType && data !== undefined) {
+        globalSharedStore[entityType] = data;
+        socket.broadcast.emit('sync_broadcast', { entityType, data, sender: socket.id });
+      }
+    });
+
+    socket.on('sync_full', (fullData) => {
+      globalSharedStore = { ...globalSharedStore, ...fullData };
+      socket.broadcast.emit('sync_initial', globalSharedStore);
+    });
+
+    socket.on('sync_request', () => {
+      if (Object.values(globalSharedStore).some(v => v !== null)) {
+        socket.emit('sync_initial', globalSharedStore);
+      }
+    });
 
     // --- PODIUM ADMIN CONTROLS ---
 
