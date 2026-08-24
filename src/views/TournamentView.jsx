@@ -206,6 +206,17 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
     }).sort((a, b) => (b[playerSortKey] || 0) - (a[playerSortKey] || 0));
   }, [players, teams, allStatsMap, topScorers, topAssists, cleanSheetsList, topSavers, playerSearch, playerTeamFilter, playerSortKey]);
 
+  // Tournament MVP (Overall Most Valuable Player calculation)
+  const mvpLeader = useMemo(() => {
+    if (!combinedPlayerStats || combinedPlayerStats.length === 0) return null;
+    const sorted = [...combinedPlayerStats].sort((a, b) => {
+      const scoreA = (a.goals * 4) + (a.assists * 3) + (a.cleanSheets * 4) + (a.saves * 0.5) - (a.yellowCards * 1) - (a.redCards * 3);
+      const scoreB = (b.goals * 4) + (b.assists * 3) + (b.cleanSheets * 4) + (b.saves * 0.5) - (b.yellowCards * 1) - (b.redCards * 3);
+      return scoreB - scoreA;
+    });
+    return sorted[0];
+  }, [combinedPlayerStats]);
+
   // ── Match Handlers ─────────────────────────────────────────────────────────
 
   const handleAddMatch = async (e) => {
@@ -723,8 +734,27 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
                         </div>
 
                         {fix.isTwoLegged && pairedFix && (
-                          <div style={{ fontSize: '0.82rem', color: '#00d9ff', fontWeight: 800, marginTop: '6px', padding: '2px 10px', background: 'rgba(0, 217, 255, 0.1)', borderRadius: '10px' }}>
-                            Aggregate: {aggHome} - {aggAway}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                            <div style={{ fontSize: '0.82rem', color: '#00d9ff', fontWeight: 800, padding: '2px 10px', background: 'rgba(0, 217, 255, 0.1)', borderRadius: '10px' }}>
+                              Aggregate: {aggHome} - {aggAway}
+                            </div>
+                            {(fix.status === 'COMPLETED' && pairedFix.status === 'COMPLETED') && (
+                              <div style={{
+                                fontSize: '0.74rem',
+                                fontWeight: 900,
+                                color: aggHome > aggAway ? '#00e699' : aggAway > aggHome ? '#00e699' : '#ffb703',
+                                background: 'rgba(0,0,0,0.4)',
+                                padding: '3px 10px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                              }}>
+                                {aggHome > aggAway 
+                                  ? `🏆 ${homeTeam?.name || fix.teamAName} ADVANCES (${aggHome}-${aggAway} agg)`
+                                  : aggAway > aggHome 
+                                  ? `🏆 ${awayTeam?.name || fix.teamBName} ADVANCES (${aggAway}-${aggHome} agg)`
+                                  : `⚖️ Tied on Aggregate (${aggHome}-${aggAway})`}
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -976,6 +1006,23 @@ export const TournamentView = ({ defaultTab = 'MATCHES', showTabs = true, readOn
               </h3>
               <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00e699', fontFamily: 'monospace', marginTop: '6px' }}>
                 {cleanSheetsList[0]?.cleanSheets || 0} Clean Sheets
+              </div>
+            </div>
+
+            {/* Tournament MVP Card */}
+            <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid rgba(168, 85, 247, 0.4)', background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>👑 Tournament MVP Leader</span>
+                <Crown size={18} color="#c084fc" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#f8fafc' }}>
+                {mvpLeader?.jerseyName || mvpLeader?.name || 'N/A'}
+              </h3>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#c084fc', fontFamily: 'monospace', marginTop: '6px' }}>
+                {mvpLeader?.teamName || 'MVP Contender'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                {mvpLeader?.goals || 0}G • {mvpLeader?.assists || 0}A • {mvpLeader?.cleanSheets || 0}CS
               </div>
             </div>
 

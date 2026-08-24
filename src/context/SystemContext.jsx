@@ -473,9 +473,29 @@ export const SystemProvider = ({ children }) => {
       setTimeout(() => { isRemoteSyncRef.current = false; }, 100);
     });
 
+    // 3. Graceful Reconnection (The WiFi Test Handler)
+    const handleOnline = () => {
+      console.log('🌐 Network connection restored. Auto-resyncing state...');
+      if (!socket.connected) {
+        socket.connect();
+      }
+      socket.emit('sync_request');
+      addNotification('success', 'Connection Restored', 'Reconnected to live auction server. Real-time data synchronized.');
+    };
+
+    const handleOffline = () => {
+      console.log('⚠️ Network connection lost');
+      addNotification('warning', 'Connection Lost', 'You are currently offline. Auction updates will resume automatically once reconnected.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     return () => {
       socket.disconnect();
       broadcastChannelRef.current?.close();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -544,6 +564,51 @@ export const SystemProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('ff_budget_ledger', JSON.stringify(budgetLedger));
   }, [budgetLedger]);
+
+  // Targeted Player Watchlist (Manager Shortlist)
+  const [watchlist, setWatchlist] = useState(() => {
+    const saved = localStorage.getItem('ff_watchlist');
+    return safeParse(saved, []);
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ff_watchlist', JSON.stringify(watchlist));
+  }, [watchlist]);
+
+  const toggleWatchlist = (playerId) => {
+    setWatchlist(prev => {
+      const exists = prev.includes(playerId);
+      const updated = exists ? prev.filter(id => id !== playerId) : [...prev, playerId];
+      const player = players.find(p => p.id === playerId);
+      addNotification('info', exists ? 'Removed from Watchlist' : 'Added to Watchlist', `${player?.name || 'Player'} ${exists ? 'removed from' : 'added to'} targeted shortlist.`);
+      return updated;
+    });
+  };
+
+  // Dynamic Floor & Dispute Overrides (For Podium Auctioneer)
+  const overrideActivePlayerPrice = (newPrice) => {
+    const price = Number(newPrice);
+    if (isNaN(price) || price < 0) return;
+    setAuctionState(prev => ({
+      ...prev,
+      currentBid: price
+    }));
+    if (auctionState.activePlayerId) {
+      setPlayers(prev => prev.map(p => p.id === auctionState.activePlayerId ? { ...p, basePrice: price } : p));
+    }
+    addNotification('warning', 'Price Override Applied', `Active lot base price/bid overridden to $${price.toLocaleString()}`);
+  };
+
+  const overrideAuctionTimer = (newSeconds) => {
+    const seconds = Number(newSeconds);
+    if (isNaN(seconds) || seconds < 0) return;
+    setAuctionState(prev => ({
+      ...prev,
+      timer: seconds,
+      timerExpiresAt: prev.isTimerRunning ? Date.now() + (seconds * 1000) : null
+    }));
+    addNotification('info', 'Timer Override', `Countdown timer adjusted to ${seconds}s`);
+  };
 
   // Toast Notification Helper
   const addNotification = (type, title, message) => {
@@ -1201,6 +1266,11 @@ export const SystemProvider = ({ children }) => {
       setAuctionState,
       auctionLedger,
       budgetLedger,
+      watchlist,
+      setWatchlist,
+      toggleWatchlist,
+      overrideActivePlayerPrice,
+      overrideAuctionTimer,
       fixtures,
       setFixtures,
       news,

@@ -326,6 +326,47 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'SIGN_IN' }) {
               <ArrowRight size={16} />
             </button>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>or zero-friction access</span>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+            </div>
+
+            {/* Zero-Friction Guest Spectator Access */}
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentUser({
+                  id: 'usr-guest-' + Date.now(),
+                  name: 'Guest Spectator',
+                  email: 'spectator@unileague.live',
+                  role: 'SPECTATOR',
+                  avatar: '👀',
+                  teamId: null
+                });
+                addNotification('info', 'Guest Entry', 'Entered as public spectator with zero authentication friction.');
+                if (onLoginSuccess) onLoginSuccess();
+              }}
+              style={{
+                padding: '11px 16px',
+                borderRadius: '10px',
+                border: '1px solid rgba(0, 217, 255, 0.35)',
+                background: 'rgba(0, 217, 255, 0.1)',
+                color: '#00d9ff',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Eye size={16} />
+              <span>Continue as Guest Spectator (No Password Needed)</span>
+            </button>
+
             <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '0.74rem', color: '#64748b' }}>
               💡 <strong>Demo Credentials (password: <code style={{ color: '#f8fafc' }}>123</code>):</strong> <code style={{ color: '#60a5fa' }}>admin@gmail.com</code> (Super Admin) · <code style={{ color: '#ff4d6d' }}>subadmin@gmail.com</code> (Sub-Admin) · <code style={{ color: '#a855f7' }}>podium@gmail.com</code> (Podium Admin) · <code style={{ color: '#ffb703' }}>manager@gmail.com</code> (Manager) · <code style={{ color: '#00e699' }}>player@gmail.com</code> (Player)
             </div>
@@ -572,7 +613,7 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'SIGN_IN' }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {Object.keys(PRESET_ACCOUNTS)
-                .filter(key => !['ICON_PLAYER', 'SPECTATOR'].includes(key))
+                .filter(key => !['ICON_PLAYER'].includes(key))
                 .map(key => {
                 const acc = PRESET_ACCOUNTS[key];
                 const isSuperAdmin = key === 'SUPER_ADMIN';
@@ -580,10 +621,11 @@ export function LoginRegisterView({ onLoginSuccess, initialTab = 'SIGN_IN' }) {
                 const isManager = key === 'TEAM_MANAGER';
                 const isPlayer = key === 'PLAYER';
                 const isPodium = key === 'PODIUM_ADMIN';
+                const isSpectator = key === 'SPECTATOR';
 
-                const roleBadgeColor = isSuperAdmin ? '#ef4444' : isSubAdmin ? '#ff4d6d' : isPodium ? '#a855f7' : isManager ? '#3b82f6' : isPlayer ? '#22c55e' : '#94a3b8';
+                const roleBadgeColor = isSuperAdmin ? '#ef4444' : isSubAdmin ? '#ff4d6d' : isPodium ? '#a855f7' : isManager ? '#3b82f6' : isPlayer ? '#22c55e' : isSpectator ? '#00d9ff' : '#94a3b8';
 
-                const roleLabel = isSuperAdmin ? 'Super Admin' : isSubAdmin ? 'Sub Admin' : isPodium ? 'Podium Admin' : isManager ? 'Team Manager' : isPlayer ? 'Player' : acc.role.replace(/_/g, ' ');
+                const roleLabel = isSuperAdmin ? 'Super Admin' : isSubAdmin ? 'Sub Admin' : isPodium ? 'Podium Admin' : isManager ? 'Team Manager' : isPlayer ? 'Player' : isSpectator ? 'Guest Spectator' : acc.role.replace(/_/g, ' ');
 
                 return (
                   <button
