@@ -24,7 +24,8 @@ let globalSharedStore = {
   teams: null,
   managers: null,
   fixtures: null,
-  news: null
+  news: null,
+  auctionState: null
 };
 
 let timerInterval = null;

@@ -53,8 +53,13 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
     budgetLedger, adjustTeamBudget, randomToPodium, resetAuctionState
   } = useSystem();
 
+  const isAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'PODIUM_ADMIN';
+  const isManager = currentUser.role === 'TEAM_MANAGER';
+  const managerTeam = teams.find(t => t.managerId === currentUser.id)
+    || teams.find(t => t.id === currentUser.teamId)
+    || teams.find(t => t.managerEmail?.toLowerCase() === currentUser.email?.toLowerCase());
   const [rightTab, setRightTab] = useState('POOL');
-  const [selectedTeamId, setSelectedTeamId] = useState(currentUser.teamId || teams[0]?.id || 'team-1');
+  const [selectedTeamId, setSelectedTeamId] = useState(managerTeam?.id || currentUser.teamId || teams[0]?.id || 'team-1');
   const [customBidAmount, setCustomBidAmount] = useState('');
   const [blindBidInput, setBlindBidInput] = useState('');
 
@@ -71,22 +76,25 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
   const [biddingType, setBiddingType] = useState('NORMAL');
   const [blindTimerSetting, setBlindTimerSetting] = useState(60);
   const [blindTimerInput, setBlindTimerInput] = useState('60');
+  const [managerTimer, setManagerTimer] = useState(auctionState.timer);
 
   const activePlayer = players.find(p => p.id === auctionState.activePlayerId);
   const activeCategory = activePlayer ? systemState.categories.find(c => c.id === activePlayer.categoryId) : null;
   const highBidderTeam = teams.find(t => t.id === auctionState.highBidderTeamId);
-  const biddingTeam = teams.find(t => t.id === selectedTeamId) || teams[0];
+  const biddingTeam = teams.find(t => t.id === (isManager ? managerTeam?.id : selectedTeamId)) || teams[0];
+  const biddingTeamId = biddingTeam?.id || selectedTeamId;
+  const playersRequired = Math.max(0, systemState.minRoster - (biddingTeam?.roster?.length || 0));
   const minRaise = calculateMinimumRaise(auctionState.currentBid);
   const nextMinBid = auctionState.currentBid + minRaise;
 
   // Countdown ticker
   useEffect(() => {
     let interval = null;
-    if (auctionState.isTimerRunning && auctionState.timer > 0) {
+    if (isAdmin && auctionState.isTimerRunning && auctionState.timer > 0) {
       interval = setInterval(() => {
         setAuctionState(prev => ({ ...prev, timer: prev.timer - 1 }));
       }, 1000);
-    } else if (auctionState.timer === 0 && auctionState.isTimerRunning) {
+    } else if (isAdmin && auctionState.timer === 0 && auctionState.isTimerRunning) {
       setAuctionState(prev => ({ ...prev, isTimerRunning: false }));
       if (auctionState.mode === 'BLIND') {
         addNotification('warning', 'T=0 Sealed Envelopes Ready', 'Timer reached 0! Podium Admin can now reveal winning envelope.');
@@ -95,26 +103,39 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
       }
     }
     return () => clearInterval(interval);
-  }, [auctionState.isTimerRunning, auctionState.timer]);
+  }, [isAdmin, auctionState.isTimerRunning, auctionState.timer]);
 
-  const handleRaiseBid = (increment) => placeBid(selectedTeamId, auctionState.currentBid + increment);
+  useEffect(() => {
+    const updateManagerTimer = () => {
+      if (auctionState.isTimerRunning && auctionState.timerExpiresAt) {
+        setManagerTimer(Math.max(0, Math.ceil((auctionState.timerExpiresAt - Date.now()) / 1000)));
+      } else {
+        setManagerTimer(auctionState.timer);
+      }
+    };
+    updateManagerTimer();
+    const interval = setInterval(updateManagerTimer, 250);
+    return () => clearInterval(interval);
+  }, [auctionState.isTimerRunning, auctionState.timer, auctionState.timerExpiresAt]);
+
+  const handleRaiseBid = (increment) => placeBid(biddingTeamId, auctionState.currentBid + increment);
 
   const handleCustomBid = (e) => {
     e.preventDefault();
     const amount = Number(customBidAmount);
     if (!amount) return;
-    if (placeBid(selectedTeamId, amount)) setCustomBidAmount('');
+    if (placeBid(biddingTeamId, amount)) setCustomBidAmount('');
   };
 
   const handleBlindBidSubmit = (e) => {
     e.preventDefault();
     const amount = Number(blindBidInput);
     if (!amount) return;
-    placeBid(selectedTeamId, amount);
+    placeBid(biddingTeamId, amount);
     setBlindBidInput('');
   };
 
-  const guardCheck = validateBudgetGuardrail(selectedTeamId, nextMinBid);
+  const guardCheck = validateBudgetGuardrail(biddingTeamId, nextMinBid);
 
   const captainOrVCIds = new Set();
   teams.forEach(t => {
@@ -141,6 +162,7 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
       mode: type === 'BLIND' ? 'BLIND' : 'NORMAL',
       timer: timerVal,
       isTimerRunning: false,
+      timerExpiresAt: null,
       auctionStatus: 'BIDDING'
     }));
     addNotification('info', 'Bidding Type Changed', `Mode: ${type} | Timer: ${timerVal}s`);
@@ -165,8 +187,6 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
     }
     addNotification('success', 'Blind Timer Updated', `Blind bid timer set to ${val}s — does NOT affect Normal timer`);
   };
-
-  const isAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'PODIUM_ADMIN';
 
   // ──────────────────────────────────────────────────────────────────
   // ADMIN DASHBOARD VIEW
@@ -292,14 +312,14 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
                   <div style={{ background: 'var(--bg-card-solid)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px' }}>PODIUM CONTROLS</div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <ActionButton onClick={() => setAuctionState(prev => ({ ...prev, isTimerRunning: true }))} className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} flashColor="rgba(0,230,153,0.5)">
+                      <ActionButton onClick={() => setAuctionState(prev => ({ ...prev, isTimerRunning: true, timerExpiresAt: Date.now() + (prev.timer * 1000) }))} className="btn btn-primary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} flashColor="rgba(0,230,153,0.5)">
                         <Play size={14} /> Start Timer
                       </ActionButton>
-                      <ActionButton onClick={() => setAuctionState(prev => ({ ...prev, isTimerRunning: false }))} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} flashColor="rgba(255,255,255,0.2)">
+                      <ActionButton onClick={() => setAuctionState(prev => ({ ...prev, isTimerRunning: false, timerExpiresAt: null }))} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} flashColor="rgba(255,255,255,0.2)">
                         <Pause size={14} /> Pause
                       </ActionButton>
                       <ActionButton
-                        onClick={() => setAuctionState(prev => ({ ...prev, timer: auctionState.mode === 'BLIND' ? blindTimerSetting : globalTimerSetting, isTimerRunning: false }))}
+                        onClick={() => setAuctionState(prev => ({ ...prev, timer: auctionState.mode === 'BLIND' ? blindTimerSetting : globalTimerSetting, isTimerRunning: false, timerExpiresAt: null }))}
                         className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem' }} flashColor="rgba(0,217,255,0.4)"
                       >
                         <RotateCcw size={14} /> Reset
@@ -529,6 +549,64 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
   // ──────────────────────────────────────────────────────────────────
   // MANAGER / ICON / SPECTATOR VIEW
   // ──────────────────────────────────────────────────────────────────
+  if (isManager) {
+    const managerBidAmount = auctionState.highBidderTeamId ? nextMinBid : auctionState.currentBid;
+    return (
+      <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Gavel color="var(--accent-gold)" /> Manager Auction
+          </h2>
+        </div>
+        {activePlayer ? (
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              <div>
+                <div style={{ color: activeCategory?.color || 'var(--accent-green)', fontWeight: 800, fontSize: '0.8rem' }}>
+                  {activeCategory?.name || 'Player'} · Base Price: ${(activePlayer.basePrice || 0).toLocaleString()}
+                </div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 900, margin: '8px 0' }}>{activePlayer.name}</h2>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{activePlayer.primaryPosition} · {activePlayer.jerseyName} · {activePlayer.session}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>CURRENT BIDDING PRICE</div>
+                <div style={{ color: 'var(--accent-gold)', fontSize: '2.2rem', fontWeight: 900 }}>${auctionState.currentBid.toLocaleString()}</div>
+                <div style={{ color: managerTimer <= 5 ? 'var(--accent-red)' : 'var(--accent-green)', fontWeight: 800 }}>TIME: {managerTimer}s</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ padding: '14px', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>REMAINING BALANCE</div>
+                <strong style={{ color: 'var(--accent-green)', fontSize: '1.2rem' }}>${(biddingTeam?.budget || 0).toLocaleString()}</strong>
+              </div>
+              <div style={{ padding: '14px', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>PLAYERS TAKEN</div>
+                <strong style={{ fontSize: '1.2rem' }}>{biddingTeam?.roster?.length || 0}</strong>
+              </div>
+              <div style={{ padding: '14px', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>PLAYERS NEEDED</div>
+                <strong style={{ color: playersRequired ? 'var(--accent-gold)' : 'var(--accent-green)', fontSize: '1.2rem' }}>{playersRequired}</strong>
+              </div>
+            </div>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '12px', fontSize: '1rem' }}
+              onClick={() => placeBid(biddingTeamId, managerBidAmount)}
+              disabled={auctionState.auctionStatus !== 'BIDDING' || managerTimer <= 0 || (biddingTeam?.budget || 0) < managerBidAmount}
+            >
+              Bid ${managerBidAmount.toLocaleString()}
+            </button>
+          </div>
+        ) : (
+          <div className="glass-panel" style={{ padding: '80px 24px', textAlign: 'center' }}>
+            <Gavel size={54} color="var(--accent-gold)" style={{ opacity: 0.5, marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Currently no player is on podium</h3>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Phase Header */}
@@ -612,7 +690,7 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
             ) : (
               <div style={{ textAlign: 'center', padding: '60px 20px' }}>
                 <Gavel size={54} color="var(--accent-gold)" style={{ opacity: 0.5, marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Podium Stage Empty</h3>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>No player is currently on the podium</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '8px auto 0 auto' }}>
                   The Podium Admin can select an approved player from the unsold pool to initiate live bidding.
                 </p>
@@ -628,24 +706,32 @@ export const LiveAuctionView = ({ isPodiumAdmin = false }) => {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bidding as:</span>
-                <select className="form-control" style={{ padding: '4px 10px', fontSize: '0.85rem', fontWeight: 700, width: 'auto' }} value={selectedTeamId} onChange={(e) => setSelectedTeamId(e.target.value)}>
-                  {teams.map(t => <option key={t.id} value={t.id}>{t.logo} {t.name} (${t.budget.toLocaleString()})</option>)}
-                </select>
+                {isManager ? (
+                  <strong style={{ fontSize: '0.85rem' }}>{biddingTeam?.logo} {biddingTeam?.name}</strong>
+                ) : (
+                  <select className="form-control" style={{ padding: '4px 10px', fontSize: '0.85rem', fontWeight: 700, width: 'auto' }} value={selectedTeamId} onChange={(e) => setSelectedTeamId(e.target.value)}>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.logo} {t.name} (${t.budget.toLocaleString()})</option>)}
+                  </select>
+                )}
               </div>
             </div>
             <div style={{ background: 'var(--bg-card-solid)', border: '1px solid var(--border-color)', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', textAlign: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', textAlign: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>CURRENT BUDGET</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-green)' }}>${biddingTeam.budget.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-green)' }}>${(biddingTeam?.budget || 0).toLocaleString()}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ROSTER SLOTS</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{biddingTeam.roster.length} / {systemState.minRoster} min</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PLAYERS SIGNED</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{biddingTeam?.roster?.length || 0}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>MIN BID RESERVE NEEDED</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-gold)' }}>${(Math.max(0, systemState.minRoster - (biddingTeam.roster.length + 1)) * 3000).toLocaleString()}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PLAYERS REQUIRED MORE</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: playersRequired ? 'var(--accent-gold)' : 'var(--accent-green)' }}>{playersRequired}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>MIN BID RESERVE</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-gold)' }}>${(playersRequired * 3000).toLocaleString()}</div>
                 </div>
               </div>
               {!guardCheck.valid && activePlayer && (

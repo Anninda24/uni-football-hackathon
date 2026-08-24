@@ -7,6 +7,16 @@ const SOCKET_URL = typeof window !== 'undefined'
 
 const SystemContext = createContext();
 
+const hydrateAuctionState = (state) => {
+  const hydrated = state || {};
+  if (!hydrated.isTimerRunning || !hydrated.timerExpiresAt) return hydrated;
+
+  const remaining = Math.max(0, Math.ceil((hydrated.timerExpiresAt - Date.now()) / 1000));
+  return remaining > 0
+    ? { ...hydrated, timer: remaining }
+    : { ...hydrated, timer: 0, isTimerRunning: false, timerExpiresAt: null };
+};
+
 // Initial Default State according to PRD
 const INITIAL_SYSTEM_STATE = {
   // Phase state: 'SETUP', 'REGISTRATION', 'THE_AUCTION', 'TOURNAMENT'
@@ -361,7 +371,7 @@ export const SystemProvider = ({ children }) => {
   // Auction State (Live Stage)
   const [auctionState, setAuctionState] = useState(() => {
     const saved = localStorage.getItem('ff_auction_state');
-    return safeParse(saved, {
+    return hydrateAuctionState(safeParse(saved, {
       activePlayerId: null,
       mode: 'NORMAL', // 'NORMAL' (incremental) or 'BLIND' (sealed bid)
       timer: 30, // seconds
@@ -369,8 +379,9 @@ export const SystemProvider = ({ children }) => {
       currentBid: 0,
       highBidderTeamId: null,
       blindBids: [], // [{ teamId, amount }] for sealed envelope bids
-      auctionStatus: 'IDLE' // 'IDLE', 'BIDDING', 'SOLD', 'UNSOLD'
-    });
+      auctionStatus: 'IDLE', // 'IDLE', 'BIDDING', 'SOLD', 'UNSOLD'
+      timerExpiresAt: null
+    }));
   });
 
   // Auction Ledger (Stream of bid history)
@@ -397,6 +408,7 @@ export const SystemProvider = ({ children }) => {
   const socketRef = useRef(null);
   const isRemoteSyncRef = useRef(false);
   const broadcastChannelRef = useRef(null);
+  const auctionStateBroadcastReadyRef = useRef(false);
 
   // Initialize Real-Time Sync Socket & BroadcastChannel
   useEffect(() => {
@@ -415,6 +427,7 @@ export const SystemProvider = ({ children }) => {
           else if (entityType === 'systemState') setSystemState(data);
           else if (entityType === 'fixtures') setFixtures(data);
           else if (entityType === 'news') setNews(data);
+          else if (entityType === 'auctionState') setAuctionState(hydrateAuctionState(data));
           setTimeout(() => { isRemoteSyncRef.current = false; }, 50);
         };
       } catch (err) {
@@ -443,6 +456,7 @@ export const SystemProvider = ({ children }) => {
       if (sharedStore.systemState) setSystemState(sharedStore.systemState);
       if (sharedStore.fixtures) setFixtures(sharedStore.fixtures);
       if (sharedStore.news) setNews(sharedStore.news);
+      if (sharedStore.auctionState) setAuctionState(hydrateAuctionState(sharedStore.auctionState));
       setTimeout(() => { isRemoteSyncRef.current = false; }, 100);
     });
 
@@ -455,6 +469,7 @@ export const SystemProvider = ({ children }) => {
       else if (entityType === 'systemState') setSystemState(data);
       else if (entityType === 'fixtures') setFixtures(data);
       else if (entityType === 'news') setNews(data);
+      else if (entityType === 'auctionState') setAuctionState(hydrateAuctionState(data));
       setTimeout(() => { isRemoteSyncRef.current = false; }, 100);
     });
 
@@ -499,6 +514,11 @@ export const SystemProvider = ({ children }) => {
 
   useEffect(() => {
     localStorage.setItem('ff_auction_state', JSON.stringify(auctionState));
+    if (!auctionStateBroadcastReadyRef.current) {
+      auctionStateBroadcastReadyRef.current = true;
+      return;
+    }
+    broadcastEntityChange('auctionState', auctionState);
   }, [auctionState]);
 
   useEffect(() => {
@@ -582,7 +602,8 @@ export const SystemProvider = ({ children }) => {
       currentBid: 0,
       highBidderTeamId: null,
       blindBids: [],
-      auctionStatus: 'IDLE'
+      auctionStatus: 'IDLE',
+      timerExpiresAt: null
     });
     addNotification('info', 'Auction Reset', 'Auction state has been reset to IDLE.');
   };
@@ -682,7 +703,8 @@ export const SystemProvider = ({ children }) => {
       currentBid: player.basePrice,
       highBidderTeamId: null,
       blindBids: [],
-      auctionStatus: 'BIDDING'
+      auctionStatus: 'BIDDING',
+      timerExpiresAt: null
     });
 
     addNotification('success', 'Podium Active', `${player.name} (${player.jerseyName}) is now on stage! Base Price: $${player.basePrice.toLocaleString()}`);
@@ -721,7 +743,8 @@ export const SystemProvider = ({ children }) => {
         currentBid: bidAmount,
         highBidderTeamId: teamId,
         timer: 30, // Reset timer on valid normal bid
-        isTimerRunning: true
+        isTimerRunning: true,
+        timerExpiresAt: Date.now() + 30000
       }));
 
       // Record in Ledger
@@ -772,7 +795,7 @@ export const SystemProvider = ({ children }) => {
 
     if (!winningTeamId) {
       addNotification('warning', 'No Bids Placed', `${player.name} went unsold.`);
-      setAuctionState(prev => ({ ...prev, auctionStatus: 'UNSOLD', activePlayerId: null, isTimerRunning: false }));
+      setAuctionState(prev => ({ ...prev, auctionStatus: 'UNSOLD', activePlayerId: null, isTimerRunning: false, timerExpiresAt: null }));
       return;
     }
 
@@ -802,7 +825,8 @@ export const SystemProvider = ({ children }) => {
       currentBid: 0,
       highBidderTeamId: null,
       blindBids: [],
-      auctionStatus: 'SOLD'
+      auctionStatus: 'SOLD',
+      timerExpiresAt: null
     });
 
     addNotification('success', '🔨 SOLD!', `${player.name} SOLD to ${winningTeam.name} for $${winningAmount.toLocaleString()}!`);
@@ -822,7 +846,8 @@ export const SystemProvider = ({ children }) => {
       currentBid: 0,
       highBidderTeamId: null,
       blindBids: [],
-      auctionStatus: 'UNSOLD'
+      auctionStatus: 'UNSOLD',
+      timerExpiresAt: null
     });
 
     addNotification('info', 'Player Passed', `${player.name} marked as Unsold.`);
