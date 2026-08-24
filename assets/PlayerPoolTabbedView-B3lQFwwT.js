@@ -1,0 +1,1 @@
+import{j as r}from"./index-CLuMQUuK.js";import"./vendor-lucide-BTjTb23R.js";import{CategoryManagerView as o}from"./CategoryManagerView-ChMHQgHJ.js";import"./vendor-react-CdBZPfGt.js";import"./vendor-socket-SYmKJpIj.js";const a=()=>r.jsx(o,{});export{a as PlayerPoolTabbedView};
